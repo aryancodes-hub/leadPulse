@@ -1,0 +1,22 @@
+{
+  "name": "leadpulse-core-api",
+  "version": "1.0.0",
+  "main": "bin/start.js",
+  "scripts": {
+    "start": "node bin/start.js",
+    "dev": "nodemon bin/start.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "winston": "^3.10.0",
+    "zod": "^3.22.2",
+    "leadpulse-data-model": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

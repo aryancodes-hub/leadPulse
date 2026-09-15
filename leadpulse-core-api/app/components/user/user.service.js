@@ -1,0 +1,81 @@
+﻿const { User } = require('leadpulse-data-model');
+const { NotFoundError, ConflictError, ForbiddenError } = require('../../lib/error');
+const bcrypt = require('bcryptjs');
+
+class UserService {
+
+  async createUser(managerId, data) {
+    const { fullName, email, password } = data;
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      throw new ConflictError("A user with this email already exists.");
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const user = await User.create({
+      role: 'executive',
+      managerId,
+      fullName,
+      email,
+      passwordHash
+    });
+
+    // Strip sensitive info before returning
+    const userJson = user.toJSON();
+    delete userJson.passwordHash;
+    return userJson;
+  }
+
+  async getUsers(managerId, pagination) {
+    const { limit, offset } = pagination;
+    
+    const { count, rows } = await User.findAndCountAll({
+      where: { managerId, role: 'executive' },
+      limit,
+      offset,
+      attributes: { exclude: ['passwordHash', 'refreshTokenHash', 'resetTokenHash'] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    return { users: rows, total: count };
+  }
+
+  async getUserById(managerId, userId) {
+    const user = await User.findOne({
+      where: { id: userId, managerId },
+      attributes: { exclude: ['passwordHash', 'refreshTokenHash', 'resetTokenHash'] }
+    });
+
+    if (!user) {
+      throw new NotFoundError("Executive not found or you do not have permission to view them.");
+    }
+
+    return user;
+  }
+
+  async updateUser(managerId, userId, data) {
+    const user = await User.findOne({ where: { id: userId, managerId } });
+    
+    if (!user) {
+      throw new NotFoundError("Executive not found or you do not have permission to update them.");
+    }
+
+    const updatableFields = ['fullName', 'isActive'];
+    const updateData = {};
+    updatableFields.forEach(field => {
+      if (data[field] !== undefined) updateData[field] = data[field];
+    });
+
+    await user.update(updateData);
+    
+    const userJson = user.toJSON();
+    delete userJson.passwordHash;
+    delete userJson.refreshTokenHash;
+    delete userJson.resetTokenHash;
+    return userJson;
+  }
+}
+
+module.exports = UserService;

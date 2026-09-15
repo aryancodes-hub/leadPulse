@@ -1,0 +1,24 @@
+{
+  "name": "leadpulse-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "leadpulse-frontend",
+    "leadpulse-core-api",
+    "leadpulse-import-service",
+    "leadpulse-email-service",
+    "leadpulse-data-model"
+  ],
+  "scripts": {
+    "dev:core": "npm run dev -w leadpulse-core-api",
+    "dev:import": "npm run dev -w leadpulse-import-service",
+    "dev:email": "npm run dev -w leadpulse-email-service"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.9",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
+  }
+}
