@@ -1,5 +1,6 @@
-﻿const { Campaign, CampaignLead, LeadListMembership, ClientManager, sequelize } = require('leadpulse-data-model');
+﻿const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
+const { Op } = require('sequelize');
 
 class CampaignService {
   async verifyClientAccess(userId, clientId) {
@@ -21,9 +22,26 @@ class CampaignService {
       data.createdByUserId = userId;
       const campaign = await Campaign.create(data, { transaction: t });
       
-      // Synchronous Audience Building MVP: Copy members from LeadList to CampaignLead
+      let whereClause = { leadListId: data.leadListId };
+
+      // 1. Sequence-Level Check
+      if (campaign.excludeClosedLeads) {
+        whereClause.status = { [Op.ne]: 'Converted' };
+      }
+
+      // 2. Global Client-Level Check
+      if (campaign.requiresNetNewLeads) {
+        whereClause.clientLeadId = {
+          [Op.notIn]: sequelize.literal(`(
+            SELECT client_lead_id 
+            FROM lead_list_memberships 
+            WHERE status = 'Converted'
+          )`)
+        };
+      }
+
       const members = await LeadListMembership.findAll({
-        where: { leadListId: data.leadListId },
+        where: whereClause,
         transaction: t
       });
 
@@ -83,4 +101,5 @@ class CampaignService {
   }
 }
 module.exports = CampaignService;
+
 

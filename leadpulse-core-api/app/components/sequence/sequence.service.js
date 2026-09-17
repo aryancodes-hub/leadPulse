@@ -28,6 +28,8 @@ class SequenceService {
       include: [{ model: Campaign, as: 'campaigns' }]
     });
     if (!sequence) throw new NotFoundError("Sequence not found");
+    
+    // Verify access AFTER fetching, so we know which client this belongs to
     await this.verifyClientAccess(userId, sequence.clientId);
     return sequence;
   }

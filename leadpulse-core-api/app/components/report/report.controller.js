@@ -8,14 +8,14 @@ class ReportController {
 
   async getCampaignSummary(req, res, next) {
     try {
-      const data = await this.service.getCampaignSummary(req.params.id);
+      const data = await this.service.getCampaignSummary(req.user, req.params.id);
       return sendSuccess(res, data, 'Campaign analytics retrieved');
     } catch (error) { next(error); }
   }
 
   async exportEngagements(req, res, next) {
     try {
-      const data = await this.service.exportEngagements(req.query.campaignId);
+      const data = await this.service.exportEngagements(req.user, req.query.campaignId);
       // For MVP API, return raw mapped JSON. A frontend or Puppeteer microservice will build the Excel file.
       return sendSuccess(res, data, 'Engagement data ready for export');
     } catch (error) { next(error); }
@@ -23,7 +23,7 @@ class ReportController {
 
   async exportConverted(req, res, next) {
     try {
-      const data = await this.service.exportConverted(req.query.campaignId);
+      const data = await this.service.exportConverted(req.user, req.query.campaignId);
       return sendSuccess(res, data, 'Converted leads data ready for export');
     } catch (error) { next(error); }
   }
@@ -85,3 +85,4 @@ module.exports = ReportController;
  *       200:
  *         description: Flat JSON intended for Client handoff
  */
+

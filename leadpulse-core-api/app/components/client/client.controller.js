@@ -32,6 +32,10 @@ class ClientController {
    *                 type: string
    *                 format: email
    *                 example: jane@acmecorp.com
+   *               password:
+   *                 type: string
+   *                 format: password
+   *                 example: InitialPassword123! 
    *               managerId:
    *                 type: string
    *                 format: uuid
@@ -77,7 +81,7 @@ class ClientController {
    */
   async getClients(req, res, next) {
     try {
-      const { clients, total } = await this.clientService.getClients(req.pagination);
+      const { clients, total } = await this.clientService.getClients(req.user.id, req.pagination);
       
       const meta = {
         total,
@@ -115,7 +119,7 @@ class ClientController {
    */
   async getClientById(req, res, next) {
     try {
-      const client = await this.clientService.getClientById(req.params.id);
+      const client = await this.clientService.getClientById(req.user.id, req.params.id);
       return sendSuccess(res, client, 'Client retrieved successfully');
     } catch (error) {
       next(error);
@@ -160,7 +164,7 @@ class ClientController {
    */
   async updateClient(req, res, next) {
     try {
-      const client = await this.clientService.updateClient(req.params.id, req.body);
+      const client = await this.clientService.updateClient(req.user.id, req.params.id, req.body);
       return sendSuccess(res, client, 'Client updated successfully');
     } catch (error) {
       next(error);
@@ -169,4 +173,6 @@ class ClientController {
 }
 
 module.exports = ClientController;
+
+
 

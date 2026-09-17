@@ -15,7 +15,7 @@ class EmailOperationsController {
 
   async getJobStatus(req, res, next) {
     try {
-      const job = await this.service.getJobStatus(req.params.jobId);
+      const job = await this.service.getJobStatus(req.user.id, req.params.jobId);
       return sendSuccess(res, job, 'Job status retrieved');
     } catch (error) { next(error); }
   }
@@ -158,3 +158,4 @@ module.exports = EmailOperationsController;
  *       200:
  *         description: Success message
  */
+

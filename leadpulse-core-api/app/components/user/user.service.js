@@ -5,18 +5,25 @@ const bcrypt = require('bcryptjs');
 class UserService {
 
   async createUser(managerId, data) {
-    const { fullName, email, password } = data;
+    const { fullName, email, password, role = 'executive', clientId } = data;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       throw new ConflictError("A user with this email already exists.");
     }
 
+    if (role === 'client') {
+      if (!clientId) throw new BadRequestError("clientId is required to create a client user.");
+      const link = await ClientManager.findOne({ where: { userId: managerId, clientId } });
+      if (!link) throw new ForbiddenError("You do not manage this client.");
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await User.create({
-      role: 'executive',
-      managerId,
+      role,
+      managerId, // We link both executives and clients to the manager
+      clientId: role === 'client' ? clientId : null,
       fullName,
       email,
       passwordHash

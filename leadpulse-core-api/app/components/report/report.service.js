@@ -1,39 +1,74 @@
-﻿const { Campaign, CallRemark, LeadEngagement, ClientLead, MasterContact, sequelize } = require('leadpulse-data-model');
+﻿const { Campaign, CallRemark, LeadEngagement, ClientLead, MasterContact, ClientManager, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError } = require('../../lib/error');
 
 class ReportService {
-  async getCampaignSummary(campaignId) {
+  async verifyManagerControlsCampaign(user, campaignId) {
+    if (!campaignId) return; 
     const campaign = await Campaign.findByPk(campaignId);
     if (!campaign) throw new NotFoundError("Campaign not found");
+    if (user.role === 'client') {
+      if (campaign.clientId !== user.clientId) {
+        throw new ForbiddenError("You do not have permission to view this campaign's reports.");
+      }
+      return campaign;
+    }
+    const link = await ClientManager.findOne({ where: { userId, clientId: campaign.clientId } });
+    if (!link) throw new ForbiddenError("You do not have permission to view this campaign's reports.");
+    return campaign;
+  }
+
+  async getCampaignSummary(user, campaignId) {
+    const campaign = await this.verifyManagerControlsCampaign(user, campaignId);
 
     const callOutcomes = await CallRemark.findAll({
       where: { campaignId },
-      attributes: [
-        'callOutcome',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
+      attributes: ['callOutcome', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
       group: ['callOutcome'],
       raw: true
     });
 
     const emailStats = await LeadEngagement.findAll({
       where: { campaignId },
-      attributes: [
-        'status',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
+      attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
       group: ['status'],
       raw: true
     });
 
-    return {
-      campaign: { id: campaign.id, name: campaign.name, type: campaign.type },
+    const response = {
+      campaign: { 
+        id: campaign.id, 
+        name: campaign.name, 
+        type: campaign.type,
+        pricingModel: campaign.pricingModel
+      },
       callOutcomes,
       emailStats
     };
+
+    // Strict Billing Calculation based on unique list membership
+    if (campaign.pricingModel === 'cost_per_lead') {
+      const { LeadListMembership } = require('leadpulse-data-model');
+      const totalUniqueConversions = await LeadListMembership.count({
+        where: { leadListId: campaign.leadListId, status: 'Converted' }
+      });
+      
+      response.billing = {
+        totalUniqueConversions,
+        ratePerLead: campaign.ratePerLead,
+        currentBill: totalUniqueConversions * (campaign.ratePerLead || 0)
+      };
+    } else if (campaign.pricingModel === 'flat_retainer') {
+      response.billing = {
+        retainerAmount: campaign.retainerAmount,
+        currentBill: campaign.retainerAmount
+      };
+    }
+
+    return response;
   }
 
-  async exportEngagements(campaignId) {
+  async exportEngagements(user, campaignId) {
+    await this.verifyManagerControlsCampaign(user, campaignId);
     const whereClause = {};
     if (campaignId) whereClause.campaignId = campaignId;
 
@@ -49,7 +84,6 @@ class ReportService {
       nest: true
     });
 
-    // Flatten for CSV/ExcelJS
     return engagements.map(e => ({
       email: e.clientLead.masterContact.email,
       firstName: e.clientLead.masterContact.firstName,
@@ -63,7 +97,8 @@ class ReportService {
     }));
   }
 
-  async exportConverted(campaignId) {
+  async exportConverted(user, campaignId) {
+    await this.verifyManagerControlsCampaign(user, campaignId);
     const whereClause = { callOutcome: 'Converted' };
     if (campaignId) whereClause.campaignId = campaignId;
 
@@ -78,7 +113,6 @@ class ReportService {
       nest: true
     });
 
-    // Flatten for Handoff
     return conversions.map(c => ({
       campaignId: c.campaignId,
       executiveId: c.executiveUserId,
@@ -95,3 +129,4 @@ class ReportService {
   }
 }
 module.exports = ReportService;
+

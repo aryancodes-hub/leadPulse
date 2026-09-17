@@ -37,12 +37,12 @@ class LeadListService {
   }
 
   async getImportStatus(userId, jobId) {
-    await this.verifyClientAccess(userId, job.clientId);
     const job = await ImportJob.findByPk(jobId, {
       include: [{ model: LeadList, as: 'leadList' }]
     });
-
+    
     if (!job) throw new NotFoundError("Import job not found");
+    await this.verifyClientAccess(userId, job.clientId);
     return job;
   }
 
@@ -61,13 +61,13 @@ class LeadListService {
   }
 
   async getLeadListById(userId, id) {
-    await this.verifyClientAccess(userId, list.clientId);
     const list = await LeadList.findByPk(id, {
       include: [
         { model: ImportJob, as: 'importJobs', limit: 1, order: [['createdAt', 'DESC']] }
       ]
     });
     if (!list) throw new NotFoundError("Lead list not found");
+    await this.verifyClientAccess(userId, list.clientId);
     return list;
   }
 

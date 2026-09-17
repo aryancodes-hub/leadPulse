@@ -1,4 +1,4 @@
-const { Model, DataTypes } = require("sequelize");
+﻿const { Model, DataTypes } = require("sequelize");
 
 class Campaign extends Model {
   static initModel(sequelize) {
@@ -21,8 +21,6 @@ class Campaign extends Model {
         pricingModel: { type: DataTypes.ENUM("flat_retainer", "cost_per_lead"), allowNull: true },
         retainerAmount: { type: DataTypes.NUMERIC, allowNull: true },
         ratePerLead: { type: DataTypes.NUMERIC, allowNull: true },
-        budgetAlert90Sent: { type: DataTypes.BOOLEAN, defaultValue: false },
-        budgetAlert100Sent: { type: DataTypes.BOOLEAN, defaultValue: false },
         requiresManagerApproval: { type: DataTypes.BOOLEAN, defaultValue: true },
         approvedByUserId: { type: DataTypes.UUID, allowNull: true, references: { model: "users", key: "id" } },
         approvedAt: { type: DataTypes.DATE, allowNull: true },
@@ -49,3 +47,4 @@ class Campaign extends Model {
   }
 }
 module.exports = Campaign;
+

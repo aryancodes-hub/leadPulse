@@ -1,5 +1,5 @@
-﻿const { CampaignLead, CallRemark, ClientLead, LeadListMembership, MasterContact, sequelize } = require('leadpulse-data-model');
-const { NotFoundError, BadRequestError } = require('../../lib/error');
+﻿const { CampaignLead, CallRemark, ClientLead, LeadListMembership, MasterContact, Campaign, ClientManager, CampaignExecutive, sequelize } = require('leadpulse-data-model');
+const { NotFoundError, BadRequestError, ForbiddenError } = require('../../lib/error');
 
 class CallQueueService {
   async getNextLead(executiveId, campaignId) {
@@ -31,6 +31,12 @@ class CallQueueService {
   async createCallRemark(executiveId, data) {
     const { campaignId, clientLeadId, callOutcome, leadStatusUpdate } = data;
     
+    // Security Check: Executive must be active on this campaign
+    const execLink = await CampaignExecutive.findOne({
+      where: { campaignId, executiveUserId: executiveId, isActive: true }
+    });
+    if (!execLink) throw new ForbiddenError("You are not actively assigned to this campaign.");
+    
     return await sequelize.transaction(async (t) => {
       const remark = await CallRemark.create({
         ...data,
@@ -38,21 +44,27 @@ class CallQueueService {
         isManualEntryByManager: false
       }, { transaction: t });
 
-      // Update CampaignLead status based on outcome
       let newQueueStatus = 'called';
       if (callOutcome === 'Converted') newQueueStatus = 'completed';
-      if (['Busy', 'Not_Answered'].includes(callOutcome)) newQueueStatus = 'pending'; // Put back in queue? Simple logic for MVP. Let's just set to 'called' for now, they can be re-queued later.
+      if (['Busy', 'Not_Answered'].includes(callOutcome)) newQueueStatus = 'pending';
       
       await CampaignLead.update(
         { status: newQueueStatus, statusUpdatedAt: new Date() },
         { where: { campaignId, clientLeadId }, transaction: t }
       );
 
-      // If status update requested, update LeadListMembership status too
-      if (leadStatusUpdate) {
+      const campaign = await Campaign.findByPk(campaignId, { transaction: t });
+      
+      // Update only the local list membership to preserve historical conversion context
+      if (callOutcome === 'Converted') {
+        await LeadListMembership.update(
+          { status: 'Converted' },
+          { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
+        );
+      } else if (leadStatusUpdate) {
         await LeadListMembership.update(
           { status: leadStatusUpdate },
-          { where: { clientLeadId }, transaction: t }
+          { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
         );
       }
 
@@ -60,7 +72,17 @@ class CallQueueService {
     });
   }
 
-  async getCallRemarks(campaignId, pagination) {
+  async verifyManagerControlsCampaign(userId, campaignId) {
+    const campaign = await Campaign.findByPk(campaignId);
+    if (!campaign) throw new NotFoundError("Campaign not found");
+    const link = await ClientManager.findOne({ where: { userId, clientId: campaign.clientId } });
+    if (!link) throw new ForbiddenError("You do not have permission to manage this campaign.");
+    return campaign;
+  }
+
+  async getCallRemarks(managerId, campaignId, pagination) {
+    await this.verifyManagerControlsCampaign(managerId, campaignId);
+
     const { limit, offset } = pagination;
     const { count, rows } = await CallRemark.findAndCountAll({
       where: { campaignId },
@@ -71,15 +93,33 @@ class CallQueueService {
   }
 
   async confirmConversion(managerId, remarkId, conversionConfirmed) {
-    const remark = await CallRemark.findByPk(remarkId);
+    const remark = await CallRemark.findByPk(remarkId, {
+      include: [{ model: Campaign, as: 'campaign', attributes: ['id', 'clientId'] }]
+    });
+    
     if (!remark) throw new NotFoundError("Call remark not found");
+    
+    // Security Check
+    const link = await ClientManager.findOne({ 
+      where: { userId: managerId, clientId: remark.campaign.clientId } 
+    });
+    
+    if (!link) {
+      throw new ForbiddenError("You do not have permission to confirm conversions for this client.");
+    }
+
+    if (remark.conversionConfirmed === true && conversionConfirmed === true) {
+      return { remark, alreadyConfirmed: true };
+    }
     
     await remark.update({
       conversionConfirmed,
       confirmedByUserId: managerId,
       confirmedAt: new Date()
     });
-    return remark;
+    return { remark, alreadyConfirmed: false };
   }
 }
 module.exports = CallQueueService;
+
+

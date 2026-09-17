@@ -15,7 +15,7 @@ class DashboardService {
 
     // Email open rate
     const engagements = await LeadEngagement.findAll({
-      include: [{ model: Campaign, as: 'campaign', where: { createdByUserId: managerId } }],
+      include: [{ model: Campaign, as: 'campaign', where: { createdByUserId: managerId }, attributes: [] }],
       attributes: [
         [sequelize.fn('COUNT', sequelize.col('LeadEngagement.id')), 'totalSent'],
         [sequelize.fn('SUM', sequelize.literal('CASE WHEN "open_count" > 0 THEN 1 ELSE 0 END')), 'totalOpened']
@@ -37,6 +37,11 @@ class DashboardService {
   async getExecPerformance(requesterId, requesterRole, targetExecutiveId) {
     // Target defaults to requester if they are an executive
     const executiveUserId = targetExecutiveId || requesterId;
+    if (requesterRole === 'campaign_manager' && targetExecutiveId && targetExecutiveId !== requesterId) {
+      const { User } = require('leadpulse-data-model');
+      const execUser = await User.findOne({ where: { id: targetExecutiveId, managerId: requesterId } });
+      if (!execUser) throw new ForbiddenError("You do not manage this executive.");
+    }
 
     const totalCalls = await CallRemark.count({ where: { executiveUserId } });
     const conversions = await CallRemark.count({ where: { executiveUserId, callOutcome: 'Converted' } });
@@ -56,9 +61,6 @@ class DashboardService {
 
   async getClientPortalSummary(userId, userRole, targetClientId) {
     let clientId = targetClientId;
-    if (userRole === 'client') {
-      clientId = req.user.clientId; // Actually, passing from controller is safer
-    }
 
     // Verify manager link if requested by manager
     if (userRole === 'campaign_manager') {
@@ -76,9 +78,12 @@ class DashboardService {
       raw: true
     });
 
-    const totalConversions = await CallRemark.count({
-      include: [{ model: Campaign, as: 'campaign', where: { clientId } }],
-      where: { callOutcome: 'Converted' }
+    const { LeadListMembership, LeadList } = require('leadpulse-data-model');
+    
+    // Deduplicated conversions based on unique client lead list memberships
+    const totalConversions = await LeadListMembership.count({
+      include: [{ model: LeadList, as: 'leadList', where: { clientId } }],
+      where: { status: 'Converted' }
     });
 
     return {
@@ -90,3 +95,5 @@ class DashboardService {
 }
 
 module.exports = DashboardService;
+
+

@@ -29,7 +29,7 @@ class CallQueueController {
 
   async getCallRemarks(req, res, next) {
     try {
-      const result = await this.service.getCallRemarks(req.params.id, req.pagination);
+      const result = await this.service.getCallRemarks(req.user.id, req.params.id, req.pagination);
       const meta = { total: result.total, page: req.pagination.page, pageSize: req.pagination.pageSize, totalPages: Math.ceil(result.total / req.pagination.pageSize) };
       return sendSuccess(res, result.remarks, 'Call remarks retrieved', meta);
     } catch (error) { next(error); }
@@ -37,8 +37,11 @@ class CallQueueController {
 
   async confirmConversion(req, res, next) {
     try {
-      const remark = await this.service.confirmConversion(req.user.id, req.params.id, req.body.conversionConfirmed);
-      return sendSuccess(res, remark, 'Conversion confirmation updated');
+      const {remark, alreadyConfirmed} = await this.service.confirmConversion(req.user.id, req.params.id, req.body.conversionConfirmed);
+      const message = alreadyConfirmed 
+        ? 'This conversion was already confirmed previously.' 
+        : 'Conversion confirmation updated';
+      return sendSuccess(res, remark, message);
     } catch (error) { next(error); }
   }
 }
@@ -165,3 +168,4 @@ module.exports = CallQueueController;
  *       200:
  *         description: Conversion confirmed
  */
+

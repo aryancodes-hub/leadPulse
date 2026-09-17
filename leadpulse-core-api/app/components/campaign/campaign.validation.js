@@ -17,8 +17,6 @@ const createCampaignSchema = z.object({
     pricingModel: z.enum(['flat_retainer', 'cost_per_lead']).optional(),
     retainerAmount: z.number().optional(),
     ratePerLead: z.number().optional(),
-    budgetAlert90Sent: z.boolean().optional(),
-    budgetAlert100Sent: z.boolean().optional(),
     requiresManagerApproval: z.boolean().optional(),
     subjectLine: z.string().optional(),
     senderName: z.string().optional(),
@@ -66,3 +64,4 @@ const campaignParamsSchema = z.object({
 });
 
 module.exports = { createCampaignSchema, updateCampaignSchema, updateCampaignStatusSchema, campaignParamsSchema };
+

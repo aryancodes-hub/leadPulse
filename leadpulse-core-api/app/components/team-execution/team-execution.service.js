@@ -1,4 +1,4 @@
-﻿const { CampaignExecutive, CampaignLead, User, Campaign, sequelize } = require('leadpulse-data-model');
+﻿const { CampaignExecutive, CampaignLead, User, Campaign, ClientManager, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
 const { Op } = require('sequelize');
 
@@ -6,7 +6,16 @@ class TeamExecutionService {
   async verifyManagerControlsCampaign(userId, campaignId) {
     const campaign = await Campaign.findByPk(campaignId);
     if (!campaign) throw new NotFoundError("Campaign not found");
-    // Simplified MVP: normally check if userId manages campaign.clientId
+    
+    // Security Check: Ensure this user actually manages the client who owns the campaign
+    const link = await ClientManager.findOne({ 
+      where: { userId, clientId: campaign.clientId } 
+    });
+    
+    if (!link) {
+      throw new ForbiddenError("You do not have permission to manage this campaign.");
+    }
+
     return campaign;
   }
 
