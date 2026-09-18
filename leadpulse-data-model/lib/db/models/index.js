@@ -1,4 +1,4 @@
-﻿const User = require("./user");
+const User = require("./user");
 const Client = require("./client");
 const ClientManager = require("./clientManager");
 const Sequence = require("./sequence");
@@ -13,6 +13,7 @@ const LeadEngagement = require("./leadEngagement");
 const CallRemark = require("./callRemark");
 const ImportJob = require("./importJob");
 const EmailProcessingJob = require("./emailProcessingJob");
+const RawWebhook = require("./rawWebhook");
 
 function initModels(sequelize) {
   const models = {
@@ -30,7 +31,8 @@ function initModels(sequelize) {
     LeadEngagement: LeadEngagement.initModel(sequelize),
     CallRemark: CallRemark.initModel(sequelize),
     ImportJob: ImportJob.initModel(sequelize),
-    EmailProcessingJob: EmailProcessingJob.initModel(sequelize)
+    EmailProcessingJob: EmailProcessingJob.initModel(sequelize),
+    RawWebhook: RawWebhook.initModel(sequelize)
   };
 
   Object.keys(models).forEach((modelName) => {
@@ -58,5 +60,6 @@ module.exports = {
   LeadEngagement,
   CallRemark,
   ImportJob,
-  EmailProcessingJob
+  EmailProcessingJob,
+  RawWebhook
 };
