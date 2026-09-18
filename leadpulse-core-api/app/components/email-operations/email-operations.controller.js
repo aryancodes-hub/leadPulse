@@ -1,4 +1,4 @@
-﻿const EmailOperationsService = require('./email-operations.service');
+const EmailOperationsService = require('./email-operations.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 
 class EmailOperationsController {
@@ -20,38 +20,7 @@ class EmailOperationsController {
     } catch (error) { next(error); }
   }
 
-  async sendgridWebhook(req, res, next) {
-    try {
-      // SendGrid sends an array of events
-      const events = Array.isArray(req.body) ? req.body : [req.body];
-      await this.service.processSendgridWebhook(events);
-      return sendSuccess(res, null, 'Webhook processed');
-    } catch (error) { next(error); }
-  }
 
-  async trackOpen(req, res, next) {
-    try {
-      const imageBuffer = await this.service.trackOpen(req.query.token);
-      res.set('Content-Type', 'image/gif');
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-      return res.send(imageBuffer);
-    } catch (error) { next(error); }
-  }
-
-  async trackClick(req, res, next) {
-    try {
-      const redirectUrl = await this.service.trackClick(req.query.token, req.query.url);
-      return res.redirect(302, redirectUrl || 'https://www.google.com'); // Default fallback
-    } catch (error) { next(error); }
-  }
-
-  async trackUnsubscribe(req, res, next) {
-    try {
-      await this.service.trackUnsubscribe(req.query.token);
-      // Real app would render an HTML view. For API, we'll return a JSON success.
-      return sendSuccess(res, null, 'Successfully unsubscribed from future communications');
-    } catch (error) { next(error); }
-  }
 }
 module.exports = EmailOperationsController;
 

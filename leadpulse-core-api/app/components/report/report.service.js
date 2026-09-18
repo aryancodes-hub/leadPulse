@@ -12,6 +12,7 @@ class ReportService {
       }
       return campaign;
     }
+    const userId = user.id;
     const link = await ClientManager.findOne({ where: { userId, clientId: campaign.clientId } });
     if (!link) throw new ForbiddenError("You do not have permission to view this campaign's reports.");
     return campaign;

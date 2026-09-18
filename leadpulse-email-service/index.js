@@ -3,6 +3,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 
 const express = require("express");
 const webhookController = require("./src/api/webhook.controller");
+const trackingController = require("./src/api/tracking.controller.js");
 const jobPoller = require("./src/workers/job.poller");
 const webhookPoller = require("./src/workers/webhook.poller");
 const { summaryLogger } = require("./src/utils/logger");
@@ -12,6 +13,7 @@ const app = express();
 
 // Register routes
 app.use("/api/v1/webhooks", webhookController);
+app.use("/api/v1/track", trackingController);
 
 app.get("/health", (req, res) => {
     res.status(200).json({ service: "leadpulse-email-service", status: "ok" });

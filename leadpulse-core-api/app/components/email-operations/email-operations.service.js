@@ -1,4 +1,4 @@
-﻿const { Campaign, EmailProcessingJob, LeadEngagement, ClientLead, CampaignLead, ClientManager, LeadListMembership, sequelize } = require('leadpulse-data-model');
+const { Campaign, EmailProcessingJob, LeadEngagement, ClientLead, CampaignLead, ClientManager, LeadListMembership, sequelize } = require('leadpulse-data-model');
 const { NotFoundError, BadRequestError, ForbiddenError } = require('../../lib/error');
 
 class EmailOperationsService {
@@ -45,76 +45,7 @@ class EmailOperationsService {
     return job;
   }
 
-  async processSendgridWebhook(events) {
-    for (const event of events) {
-      const token = event.tracking_token;
-      if (!token) continue;
-      const engagement = await LeadEngagement.findOne({ where: { trackingToken: token } });
-      if (!engagement) continue;
 
-      const updates = {};
-      if (event.event === 'delivered') {
-        updates.status = 'delivered';
-        updates.deliveredAt = new Date(event.timestamp * 1000);
-      } else if (event.event === 'bounce') {
-        updates.status = 'bounced';
-        updates.bounceType = event.type;
-        updates.errorMessage = event.reason;
-      } else if (event.event === 'spamreport') {
-        updates.status = 'spamreport';
-      }
-      if (Object.keys(updates).length > 0) {
-        await engagement.update(updates);
-      }
-    }
-  }
-
-  async trackOpen(token) {
-    const engagement = await LeadEngagement.findOne({ where: { trackingToken: token } });
-    if (engagement) {
-      await engagement.increment('openCount', { by: 1 });
-      if (!engagement.openedAt) await engagement.update({ openedAt: new Date() });
-    }
-    return Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-  }
-
-  async trackClick(token, url) {
-    const engagement = await LeadEngagement.findOne({ where: { trackingToken: token } });
-    if (engagement) {
-      await engagement.increment('clickCount', { by: 1 });
-      if (!engagement.clickedAt) await engagement.update({ clickedAt: new Date() });
-    }
-    return url;
-  }
-
-  async trackConversion(token) {
-    const engagement = await LeadEngagement.findOne({ 
-      where: { trackingToken: token },
-      include: [{ model: Campaign, as: 'campaign' }] 
-    });
-    
-    if (engagement && !engagement.convertedAt) {
-      await sequelize.transaction(async (t) => {
-        await engagement.update({ convertedAt: new Date() }, { transaction: t });
-        
-        // Only update local list membership to preserve history
-        await LeadListMembership.update(
-          { status: 'Converted' },
-          { where: { clientLeadId: engagement.clientLeadId, leadListId: engagement.campaign.leadListId }, transaction: t }
-        );
-      });
-    }
-  }
-
-  async trackUnsubscribe(token) {
-    const engagement = await LeadEngagement.findOne({ where: { trackingToken: token } });
-    if (engagement) {
-      await sequelize.transaction(async (t) => {
-        if (!engagement.unsubscribedAt) await engagement.update({ unsubscribedAt: new Date() }, { transaction: t });
-        await ClientLead.update({ isUnsubscribed: true }, { where: { id: engagement.clientLeadId }, transaction: t });
-      });
-    }
-  }
 }
 module.exports = EmailOperationsService;
 

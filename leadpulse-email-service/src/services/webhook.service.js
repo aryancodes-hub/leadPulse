@@ -8,7 +8,7 @@ class WebhookService {
      */
     async processEvent(event) {
         const eventType = this.normalizeEventName(event.event);
-        const trackingToken = event.custom_args?.tracking_token;
+        const trackingToken = event.tracking_token;
 
         if (!trackingToken) return;
 
@@ -26,7 +26,7 @@ class WebhookService {
             }
 
             // BOUNCE
-            if (eventType === "bounce") {
+            if (eventType === "bounce" || eventType === "dropped") {
                 await LeadEngagement.update(
                     { 
                         status: "bounced", 
@@ -49,7 +49,6 @@ class WebhookService {
                 return;
             }
 
-            // 🔥 OPTIMIZATION 2: ATOMIC DB COUNTERS (Prevents race conditions)
 
             // OPEN
             if (eventType === "open") {
