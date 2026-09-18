@@ -1,4 +1,4 @@
-﻿const { z } = require('zod');
+const { z } = require('zod');
 
 const registerSchema = z.object({
   body: z.object({
@@ -8,7 +8,8 @@ const registerSchema = z.object({
       /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/,
       'Password must be at least 8 characters, with one uppercase, one digit, and one special character'
     ),
-    confirmPassword: z.string()
+    confirmPassword: z.string(),
+    recaptchaToken: z.string().min(1, 'reCAPTCHA token is required')
   })
 }).refine(data => data.body.password === data.body.confirmPassword, {
   message: "Passwords don't match",
@@ -18,7 +19,8 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   body: z.object({
     email: z.string().email('Invalid email address'),
-    password: z.string().min(1, 'Password is required')
+    password: z.string().min(1, 'Password is required'),
+    recaptchaToken: z.string().min(1, 'reCAPTCHA token is required')
   })
 });
 

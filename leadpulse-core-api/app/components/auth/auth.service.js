@@ -1,15 +1,19 @@
-﻿const { User, sequelize } = require('leadpulse-data-model');
+const { User, sequelize } = require('leadpulse-data-model');
 const { BadRequestError, UnauthorizedError } = require('../../lib/error');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const logger = require('../../utils/logger');
 const { sendEmail } = require('../../utils/mailer');
+const { verifyRecaptcha } = require('../../utils/recaptcha');
 
 class AuthService {
   
   async register(data) {
-    const { fullName, email, password } = data;
+    const { fullName, email, password, recaptchaToken } = data;
+
+    const isHuman = await verifyRecaptcha(recaptchaToken, 'register');
+    if (!isHuman) throw new UnauthorizedError('reCAPTCHA verification failed');
 
     // Check duplicate
     const existingUser = await User.findOne({ where: { email } });
@@ -37,7 +41,10 @@ class AuthService {
     return { id: user.id, email: user.email, role: user.role };
   }
 
-  async login(email, password) {
+  async login(email, password, recaptchaToken) {
+    const isHuman = await verifyRecaptcha(recaptchaToken, 'login');
+    if (!isHuman) throw new UnauthorizedError('reCAPTCHA verification failed');
+
     const user = await User.findOne({ where: { email } });
     
     if (!user || !user.isActive) {

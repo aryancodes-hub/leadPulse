@@ -1,4 +1,3 @@
-const authService = require('./auth.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 const jwt = require('jsonwebtoken');
 const { UnauthorizedError, BadRequestError } = require('../../lib/error');
@@ -21,7 +20,7 @@ class AuthController {
    *         application/json:
    *           schema:
    *             type: object
-   *             required: [fullName, email, password, confirmPassword]
+   *             required: [fullName, email, password, confirmPassword, recaptchaToken]
    *             properties:
    *               fullName:
    *                 type: string
@@ -38,11 +37,16 @@ class AuthController {
    *                 type: string
    *                 format: password
    *                 example: StrongPass1!
+   *               recaptchaToken:
+   *                 type: string
+   *                 example: "03AFcWeA7..."
    *     responses:
    *       201:
    *         description: Registration successful
    *       400:
    *         description: Validation error or User already exists
+   *       401:
+   *         description: reCAPTCHA verification failed
    */
   async register(req, res, next) {
     try {
@@ -65,7 +69,7 @@ class AuthController {
    *         application/json:
    *           schema:
    *             type: object
-   *             required: [email, password]
+   *             required: [email, password, recaptchaToken]
    *             properties:
    *               email:
    *                 type: string
@@ -75,16 +79,19 @@ class AuthController {
    *                 type: string
    *                 format: password
    *                 example: StrongPass1!
+   *               recaptchaToken:
+   *                 type: string
+   *                 example: "03AFcWeA7..."
    *     responses:
    *       200:
    *         description: Login successful (returns access token and sets HttpOnly refresh cookie)
    *       401:
-   *         description: Invalid credentials
+   *         description: Invalid credentials or reCAPTCHA verification failed
    */
   async login(req, res, next) {
     try {
-      const { email, password } = req.body;
-      const { accessToken, refreshToken, user } = await this.authService.login(email, password);
+      const { email, password, recaptchaToken } = req.body;
+      const { accessToken, refreshToken, user } = await this.authService.login(email, password, recaptchaToken);
       
       // Set HttpOnly cookie for the refresh token
       res.cookie('refreshToken', refreshToken, {
