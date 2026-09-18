@@ -1,4 +1,4 @@
-﻿const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
+const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
 const { Op } = require('sequelize');
 
