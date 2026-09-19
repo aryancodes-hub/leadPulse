@@ -1,4 +1,4 @@
-const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
+const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, CampaignExecutive, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
 const { Op } = require('sequelize');
 
@@ -102,15 +102,38 @@ class CampaignService {
     return true;
   }
 
-  async updateStatus(userId, id, status) {
+    async updateStatus(userId, id, status) {
     const campaign = await this.getCampaign(userId, id);
+    
+    // Update the campaign status
     await campaign.update({ status });
+
+    // --- NEW LOGIC: If marked completed, deactivate all executives ---
+    if (status === 'completed') {
+      await CampaignExecutive.update(
+        { isActive: false },
+        { where: { campaignId: id } }
+      );
+    }
+    // ---------------------------------------------------------------
+
     return campaign;
   }
 
-  async approveCampaign(userId, id) {
+    async approveCampaign(userId, id) {
     const campaign = await this.getCampaign(userId, id);
     if (campaign.status !== 'draft') throw new BadRequestError("Only draft campaigns can be approved");
+
+    // NEW: Enforce executive assignment for Call Campaigns
+    if (campaign.type === 'call') {
+      const execCount = await CampaignExecutive.count({
+        where: { campaignId: id, isActive: true }
+      });
+      if (execCount === 0) {
+        throw new BadRequestError("Cannot approve a Call Campaign without assigning at least one executive.");
+      }
+    }
+
     await campaign.update({ 
       approvedByUserId: userId,
       approvedAt: new Date(),

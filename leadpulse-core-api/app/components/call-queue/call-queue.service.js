@@ -1,4 +1,5 @@
 ﻿const { CampaignLead, CallRemark, ClientLead, LeadListMembership, MasterContact, Campaign, ClientManager, CampaignExecutive, sequelize } = require('leadpulse-data-model');
+const { Op } = require('sequelize');
 const { NotFoundError, BadRequestError, ForbiddenError } = require('../../lib/error');
 
 class CallQueueService {
@@ -65,6 +66,22 @@ class CallQueueService {
         await LeadListMembership.update(
           { status: leadStatusUpdate },
           { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
+        );
+      }
+
+      // --- Check if campaign is completely out of leads ---
+      const remainingLeads = await CampaignLead.count({
+        where: { 
+          campaignId, 
+          status: { [Op.in]: ['pending', 'in_progress'] } 
+        },
+        transaction: t
+      });
+      if (remainingLeads === 0) {
+        await campaign.update({ status: 'completed' }, { transaction: t });
+        await CampaignExecutive.update(
+          { isActive: false },
+          { where: { campaignId }, transaction: t }
         );
       }
 

@@ -23,7 +23,10 @@ export default function ManagerCampaigns() {
   const [selectedExecToAssign, setSelectedExecToAssign] = useState("");
   const [selectedExecToRemove, setSelectedExecToRemove] = useState("");
 
-  // Campaign Creation Form State
+    // Wizard State
+  const [cmpStep, setCmpStep] = useState(1);
+
+  // Step 1: Campaign Creation Form State
   const [newCmpName, setNewCmpName] = useState("");
   const [newCmpClient, setNewCmpClient] = useState("");
   const [newCmpType, setNewCmpType] = useState("Cold Call Blitz");
@@ -31,6 +34,21 @@ export default function ManagerCampaigns() {
   const [newCmpSequence, setNewCmpSequence] = useState("");
     const [execSearch, setExecSearch] = useState("");
   const [selectedExecs, setSelectedExecs] = useState([]); // Array to handle multiple
+
+  // Step 2: Logistics & Pricing
+  const [newCmpDesc, setNewCmpDesc] = useState("");
+  const [pricingModel, setPricingModel] = useState("cost_per_lead");
+  const [ratePerLead, setRatePerLead] = useState("");
+  const [retainerAmount, setRetainerAmount] = useState("");
+  const [excludeClosedLeads, setExcludeClosedLeads] = useState(true);
+  const [requiresNetNewLeads, setRequiresNetNewLeads] = useState(false);
+  
+  // Step 3: Strategy Details
+  const [scheduleType, setScheduleType] = useState("immediate");
+  const [subjectLine, setSubjectLine] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [replyToEmail, setReplyToEmail] = useState("");
+  const [emailBodyHtml, setEmailBodyHtml] = useState("");
   
   // Sequence Creation State
   const [newSequenceName, setNewSequenceName] = useState("");
@@ -102,41 +120,77 @@ export default function ManagerCampaigns() {
     }
   };
   // Handle Orchestrated Campaign Creation
-  const handleCreateCampaign = async (e) => {
-    e.preventDefault();
+    const handleCreateCampaign = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+
     if (newCmpSequence === "CREATE_NEW" || !newCmpSequence) {
       return alert("Please select a valid sequence.");
     }
 
+    // Expand payload to include all the new wizard state variables
+    const payload = { 
+      name: newCmpName,
+      type: newCmpType === "Cold Call Blitz" ? "call" : "email", 
+      clientId: newCmpClient,
+      leadListId: newCmpLeadList,
+      sequenceId: newCmpSequence,
+      
+      description: newCmpDesc,
+      pricingModel: pricingModel === "retainer" ? "flat_retainer" : "cost_per_lead",
+      ratePerLead: pricingModel === "cost_per_lead" ? Number(ratePerLead) || 0 : 0,
+      retainerAmount: pricingModel === "retainer" ? Number(retainerAmount) || 0 : 0,
+      
+      excludeClosedLeads: excludeClosedLeads,
+      requiresNetNewLeads: requiresNetNewLeads,
+      requiresManagerApproval: true, 
+      scheduleType: scheduleType,
+      
+      // Fallbacks to empty strings for Call campaigns
+      subjectLine: newCmpType === "Email Sequence Drip" ? subjectLine : "",
+      senderName: newCmpType === "Email Sequence Drip" ? senderName : "",
+      emailBodyHtml: newCmpType === "Email Sequence Drip" ? emailBodyHtml : "",
+      // Use a valid email format fallback in case the backend validates it strictly
+      replyToEmail: newCmpType === "Email Sequence Drip" ? replyToEmail : "noreply@leadpulse.com",
+    };
+
     try {
       // Step 1: Create the Campaign
-      const cmpRes = await api.post("/campaigns", { 
-        name: newCmpName,
-        type: newCmpType === "Cold Call Blitz" ? "call" : "email", 
-        clientId: newCmpClient,
-        leadListId: newCmpLeadList,
-        sequenceId: newCmpSequence
-      });
+      const cmpRes = await api.post("/campaigns", payload);
       const createdCmp = cmpRes.data?.data ?? cmpRes.data;
 
-      // Step 2: Auto-chain Executive Assignments (Handles Multiple)
+      // Step 2: Auto-chain Executive Assignments
       if (selectedExecs.length > 0) {
         await Promise.all(selectedExecs.map(execId => 
-          api.post(`/campaigns/${createdCmp.id}/executives`, { executiveId: execId })
+          api.post(`/campaigns/${createdCmp.id}/executives`, { executiveUserId: execId })
         ));
       }
 
-      // Step 3: Refresh the Campaign list to get fully joined data
+      // Step 3: Refresh the Campaign list
       const refreshRes = await api.get(`/campaigns?page=${page}&limit=${limit}`);
       setCampaigns(refreshRes.data?.data?.campaigns || []);
       
-      // Reset Form
+      // Step 4: Close modal and reset ALL wizard state
       setIsCreateModalOpen(false);
+      setCmpStep(1); 
+      
       setNewCmpName("");
       setNewCmpClient("");
       setNewCmpLeadList("");
       setNewCmpSequence("");
       setSelectedExecs([]);
+      
+      setNewCmpDesc("");
+      setPricingModel("cost_per_lead");
+      setRatePerLead("");
+      setRetainerAmount("");
+      setExcludeClosedLeads(true);
+      setRequiresNetNewLeads(false);
+      setScheduleType("immediate");
+      
+      setSubjectLine("");
+      setSenderName("");
+      setReplyToEmail("");
+      setEmailBodyHtml("");
     } catch (error) {
       alert("Failed to create campaign. Check console.");
       console.error(error);
@@ -144,11 +198,31 @@ export default function ManagerCampaigns() {
   };
 
   // Endpoint #32: POST /api/v1/campaigns/:id/approve
-  const handleApproveCampaign = async (cmpId) => {
+    // Change parameter from cmpId to cmp
+  const handleApproveCampaign = async (cmp) => {
     try {
-      await api.post(`/campaigns/${cmpId}/approve`);
-      setCampaigns((prev) => prev.map((c) => (c.id === cmpId ? { ...c, status: "Active" } : c)));
-    } catch (e) { alert("Approval failed"); }
+      // Step 1: Approve the campaign
+      await api.post(`/campaigns/${cmp.id}/approve`);
+      
+      // Step 2: Auto-chain email dispatch if applicable
+      if (cmp.type === "Email Sequence Drip" || cmp.type === "email") {
+        try {
+          await api.post(`/campaigns/${cmp.id}/dispatch-email`);
+          alert("Campaign Approved and Emails Dispatched!");
+        } catch (dispatchErr) {
+          alert("Campaign Approved, but email dispatch failed. Check backend.");
+        }
+      } else {
+        alert("Call Campaign Approved successfully!");
+      }
+
+      // Update UI Status
+      setCampaigns((prev) => prev.map((c) => (c.id === cmp.id ? { ...c, status: "Active" } : c)));
+    } catch (e) { 
+      // Extract the beautiful backend error message if it fails!
+      const msg = e.response?.data?.error?.message || e.response?.data?.message || "Approval failed";
+      alert(`Cannot Approve: ${msg}`); 
+    }
   };
 
   // Endpoint #31: PATCH /api/v1/campaigns/:id/status
@@ -183,7 +257,7 @@ export default function ManagerCampaigns() {
   const handleAddExecToCampaign = async (e) => {
     e.preventDefault();
     try {
-      await api.post(`/campaigns/${assignExecModalCmp.id}/executives`, { executiveId: selectedExecToAssign });
+      await api.post(`/campaigns/${assignExecModalCmp.id}/executives`, { executiveUserId: selectedExecToAssign });
       const refreshRes = await api.get(`/campaigns?page=${page}&limit=${limit}`);
       setCampaigns(refreshRes.data?.data?.campaigns || []);
       setAssignExecModalCmp(null);
@@ -242,7 +316,7 @@ export default function ManagerCampaigns() {
                 <td style={{ textAlign: "right" }}>
                   <div className="flex justify-end items-center gap-1.5 flex-wrap">
                     {cmp.status === "Draft" && (
-                      <button onClick={() => handleApproveCampaign(cmp.id)} className="mgr-btn mgr-btn-purple text-xs py-1"><CheckCircle size={12} /> Approve</button>
+                      <button onClick={() => handleApproveCampaign(cmp)} className="mgr-btn mgr-btn-purple text-xs py-1"><CheckCircle size={12} /> Approve</button>
                     )}
                     {cmp.status !== "Draft" && (
                       <button onClick={() => handleToggleStatus(cmp.id, cmp.status)} className="mgr-btn mgr-btn-outline text-xs py-1">
@@ -290,90 +364,192 @@ export default function ManagerCampaigns() {
               <span className="mgr-modal-title">Create Campaign Blueprint</span>
               <button onClick={() => setIsCreateModalOpen(false)}><X size={18} /></button>
             </div>
-            <form onSubmit={handleCreateCampaign}>
-              <div className="mgr-modal-body">
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Campaign Name</label>
-                  <input type="text" required value={newCmpName} onChange={(e) => setNewCmpName(e.target.value)} className="mgr-form-input" placeholder="e.g. Q4 Outreach" />
-                </div>
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Client Organization</label>
-                  <select required value={newCmpClient} onChange={(e) => setNewCmpClient(e.target.value)} className="mgr-form-select">
-                    <option value="">Select a Client...</option>
-                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name || c.fullName}</option>)}
-                  </select>
-                </div>
+            <form onSubmit={(e) => e.preventDefault()}>
+              <div className="mgr-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                 
-                {/* Dynamically Populated via Client ID */}
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Lead List (Audience)</label>
-                  <select required disabled={!newCmpClient} value={newCmpLeadList} onChange={(e) => setNewCmpLeadList(e.target.value)} className="mgr-form-select">
-                    <option value="">{newCmpClient ? "Select a Lead List..." : "Select a Client first"}</option>
-                    {leadLists.map((ll) => <option key={ll.id} value={ll.id}>{ll.name}</option>)}
-                  </select>
-                </div>
-                
-                {/* Nested Modal Trigger */}
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Campaign Sequence</label>
-                  <select 
-                    required 
-                    disabled={!newCmpClient || !newCmpLeadList} 
-                    value={newCmpSequence} 
-                    onChange={(e) => {
-                      if (e.target.value === "CREATE_NEW") setIsCreateSequenceModalOpen(true);
-                      else setNewCmpSequence(e.target.value);
-                    }} 
-                    className="mgr-form-select"
-                  >
-                    <option value="">{newCmpClient && newCmpLeadList ? "Select a Sequence..." : "Select Client & Lead List first"}</option>
-                    {sequences.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    {newCmpClient && newCmpLeadList && <option value="CREATE_NEW" className="font-bold text-purple-600">➕ Create New Sequence...</option>}
-                  </select>
-                </div>
-
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Campaign Strategy Type</label>
-                  <select value={newCmpType} onChange={(e) => setNewCmpType(e.target.value)} className="mgr-form-select">
-                    <option value="Cold Call Blitz">Call</option>
-                    <option value="Email Sequence Drip">Email</option>
-                  </select>
-                </div>
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">
-                    Assign Executive(s) {newCmpType === "Email Sequence Drip" ? "(Max 1)" : "(Multiple Allowed)"}
-                  </label>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => setIsSelectExecModalOpen(true)}
-                    className="mgr-btn mgr-btn-outline w-full justify-center"
-                  >
-                    <UserPlus size={16} className="mr-2" />
-                    {selectedExecs.length > 0 
-                      ? `Manage Selected (${selectedExecs.length})` 
-                      : "Open Executive Selection..."}
-                  </button>
-
-                  {/* Display selected names as badges in the parent form */}
-                  {selectedExecs.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3 p-2 border border-slate-100 rounded bg-slate-50">
-                      {selectedExecs.map(id => {
-                        const ex = execs.find(e => e.id === id);
-                        return (
-                          <span key={id} className="mgr-badge mgr-badge-purple flex items-center gap-1">
-                            {ex?.name || ex?.fullName}
-                            <button type="button" onClick={() => toggleExec(id)}><X size={12} /></button>
-                          </span>
-                        );
-                      })}
+                {/* STEP 1: CORE BLUEPRINT */}
+                {cmpStep === 1 && (
+                  <div className="animate-fade-in">
+                    <div className="text-sm font-bold text-slate-800 border-b pb-2 mb-4">Step 1: Core Blueprint</div>
+                    
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Campaign Name</label>
+                      <input type="text" required value={newCmpName} onChange={(e) => setNewCmpName(e.target.value)} className="mgr-form-input" placeholder="e.g. Q4 Outreach" />
                     </div>
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Client Organization</label>
+                      <select required value={newCmpClient} onChange={(e) => setNewCmpClient(e.target.value)} className="mgr-form-select">
+                        <option value="">Select a Client...</option>
+                        {clients.map((c) => <option key={c.id} value={c.id}>{c.name || c.fullName}</option>)}
+                      </select>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Lead List (Audience)</label>
+                      <select required disabled={!newCmpClient} value={newCmpLeadList} onChange={(e) => setNewCmpLeadList(e.target.value)} className="mgr-form-select">
+                        <option value="">{newCmpClient ? "Select a Lead List..." : "Select a Client first"}</option>
+                        {leadLists.map((ll) => <option key={ll.id} value={ll.id}>{ll.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Campaign Sequence</label>
+                      <select required disabled={!newCmpClient || !newCmpLeadList} value={newCmpSequence} 
+                        onChange={(e) => {
+                          if (e.target.value === "CREATE_NEW") setIsCreateSequenceModalOpen(true);
+                          else setNewCmpSequence(e.target.value);
+                        }} className="mgr-form-select">
+                        <option value="">{newCmpClient && newCmpLeadList ? "Select a Sequence..." : "Select Client & Lead List first"}</option>
+                        {sequences.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        {newCmpClient && newCmpLeadList && <option value="CREATE_NEW" className="font-bold text-purple-600">➕ Create New Sequence...</option>}
+                      </select>
+                    </div>
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Campaign Strategy Type</label>
+                      <select value={newCmpType} onChange={(e) => setNewCmpType(e.target.value)} className="mgr-form-select">
+                        <option value="Cold Call Blitz">Cold Call Blitz</option>
+                        <option value="Email Sequence Drip">Email Sequence Drip</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: PRICING & LEADS */}
+                {cmpStep === 2 && (
+                  <div className="animate-fade-in">
+                    <div className="text-sm font-bold text-slate-800 border-b pb-2 mb-4">Step 2: Logistics & Pricing</div>
+                    
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Description / Internal Notes</label>
+                      <textarea value={newCmpDesc} onChange={e => setNewCmpDesc(e.target.value)} className="mgr-form-input" rows={2} placeholder="Optional context..." />
+                    </div>
+                    
+                    <div className="mgr-form-group border border-purple-200 bg-purple-50 p-3 rounded">
+                      <label className="mgr-form-label text-purple-900">Pricing Model</label>
+                      <select value={pricingModel} onChange={(e) => setPricingModel(e.target.value)} className="mgr-form-select bg-white mb-3">
+                        <option value="cost_per_lead">Cost Per Lead</option>
+                        <option value="retainer">Fixed Retainer</option>
+                      </select>
+                      
+                      {pricingModel === "cost_per_lead" ? (
+                        <div>
+                          <label className="mgr-form-label text-purple-900">Rate Per Lead ($)</label>
+                          <input type="number" required={pricingModel === "cost_per_lead"} value={ratePerLead} onChange={e => setRatePerLead(e.target.value)} className="mgr-form-input bg-white" placeholder="e.g. 15.00" />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="mgr-form-label text-purple-900">Retainer Amount ($)</label>
+                          <input type="number" required={pricingModel === "retainer"} value={retainerAmount} onChange={e => setRetainerAmount(e.target.value)} className="mgr-form-input bg-white" placeholder="e.g. 5000.00" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mgr-form-group mt-4">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                        <input type="checkbox" checked={excludeClosedLeads} onChange={e => setExcludeClosedLeads(e.target.checked)} className="accent-purple-600" />
+                        Exclude Closed/Converted Leads
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer mt-2">
+                        <input type="checkbox" checked={requiresNetNewLeads} onChange={e => setRequiresNetNewLeads(e.target.checked)} className="accent-purple-600" />
+                        Require Net-New Leads Only
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: STRATEGY SPECIFICS */}
+                {cmpStep === 3 && (
+                  <div className="animate-fade-in">
+                    <div className="text-sm font-bold text-slate-800 border-b pb-2 mb-4">Step 3: Strategy Configuration</div>
+                    
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">Schedule Type</label>
+                      <select value={scheduleType} onChange={(e) => setScheduleType(e.target.value)} className="mgr-form-select">
+                        <option value="immediate">Dispatch Immediately on Approval</option>
+                        <option value="scheduled">Schedule for Later (Coming Soon)</option>
+                      </select>
+                    </div>
+
+                    {newCmpType === "Email Sequence Drip" && (
+                      <div className="border border-blue-200 bg-blue-50 p-3 rounded mt-4">
+                        <div className="text-xs font-bold text-blue-800 uppercase mb-3">Email Template Settings</div>
+                        <div className="mgr-form-group">
+                          <label className="mgr-form-label text-blue-900">Sender Name</label>
+                          <input type="text" value={senderName} onChange={e => setSenderName(e.target.value)} className="mgr-form-input bg-white" placeholder="e.g. John from LeadPulse" />
+                        </div>
+                        <div className="mgr-form-group">
+                          <label className="mgr-form-label text-blue-900">Reply-To Email</label>
+                          <input type="email" value={replyToEmail} onChange={e => setReplyToEmail(e.target.value)} className="mgr-form-input bg-white" placeholder="john@company.com" />
+                        </div>
+                        <div className="mgr-form-group">
+                          <label className="mgr-form-label text-blue-900">Subject Line</label>
+                          <input type="text" value={subjectLine} onChange={e => setSubjectLine(e.target.value)} className="mgr-form-input bg-white" placeholder="You won't believe this offer..." />
+                        </div>
+                        <div className="mgr-form-group">
+                          <label className="mgr-form-label text-blue-900">Email Body HTML</label>
+                          <textarea value={emailBodyHtml} onChange={e => setEmailBodyHtml(e.target.value)} className="mgr-form-input bg-white font-mono text-xs" rows={4} placeholder="<h1>Hello {{first_name}}</h1>..." />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* STEP 4: EXECUTIVES */}
+                {cmpStep === 4 && (
+                  <div className="animate-fade-in">
+                    <div className="text-sm font-bold text-slate-800 border-b pb-2 mb-4">Step 4: Assign Executives</div>
+                    
+                    {/* PASTE YOUR SEARCHABLE EXECUTIVE BUTTON/BADGES COMPONENT HERE */}
+                    <div className="mgr-form-group">
+                      <label className="mgr-form-label">
+                        Assign Executive(s) {newCmpType === "Email Sequence Drip" ? "(Max 1)" : "(Multiple Allowed)"}
+                      </label>
+                      <button type="button" onClick={() => setIsSelectExecModalOpen(true)} className="mgr-btn mgr-btn-outline w-full justify-center">
+                        <UserPlus size={16} className="mr-2" />
+                        {selectedExecs.length > 0 ? `Manage Selected (${selectedExecs.length})` : "Open Executive Selection..."}
+                      </button>
+                      {selectedExecs.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3 p-2 border border-slate-100 rounded bg-slate-50">
+                          {selectedExecs.map(id => {
+                            const ex = execs.find(e => e.id === id);
+                            return (
+                              <span key={id} className="mgr-badge mgr-badge-purple flex items-center gap-1">
+                                {ex?.name || ex?.fullName}
+                                <button type="button" onClick={() => toggleExec(id)}><X size={12} /></button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+              
+              <div className="mgr-modal-footer flex justify-between">
+                <div>
+                  {cmpStep > 1 && (
+                    <button type="button" onClick={() => setCmpStep(prev => prev - 1)} className="mgr-btn mgr-btn-outline">
+                      <ChevronLeft size={14} className="mr-1"/> Back
+                    </button>
                   )}
                 </div>
-              </div>
-              <div className="mgr-modal-footer">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="mgr-btn mgr-btn-outline">Cancel</button>
-                <button type="submit" className="mgr-btn mgr-btn-purple">Create Campaign</button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setIsCreateModalOpen(false); setCmpStep(1); }} className="mgr-btn mgr-btn-outline">Cancel</button>
+                  
+                  {cmpStep < 4 ? (
+                    <button type="button" onClick={() => setCmpStep(prev => prev + 1)} className="mgr-btn mgr-btn-purple" disabled={cmpStep === 1 && (!newCmpName || !newCmpClient || !newCmpLeadList || !newCmpSequence)}>
+                      Next Step <ChevronRight size={14} className="ml-1"/>
+                    </button>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={handleCreateCampaign} 
+                      className="mgr-btn mgr-btn-purple"
+                    >
+                      Create Campaign
+                    </button>
+                  )}
+                </div>
               </div>
             </form>
           </div>
