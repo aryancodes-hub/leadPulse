@@ -1,4 +1,4 @@
-﻿const CampaignService = require('./campaign.service');
+const CampaignService = require('./campaign.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 
 class CampaignController {
