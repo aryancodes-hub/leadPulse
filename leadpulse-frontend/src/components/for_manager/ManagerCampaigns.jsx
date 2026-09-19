@@ -61,6 +61,11 @@ export default function ManagerCampaigns() {
   const [execPage, setExecPage] = useState(1);
   const execLimit = 5;
 
+  // Campaign Details modal
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [campaignDetails, setCampaignDetails] = useState([]);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
   // 1. Initial Load: Fetch Campaigns, Clients, and Executives
   useEffect(() => {
     api.get(`/campaigns?page=${page}&limit=${limit}`)
@@ -275,6 +280,26 @@ export default function ManagerCampaigns() {
     } catch (e) { alert("Failed to remove executive"); }
   };
 
+    const handleRowClick = async (cmp) => {
+    setSelectedCampaign(cmp);
+    setCampaignDetails([]);
+    setIsDetailsModalOpen(true);
+    
+    try {
+      if (cmp.type === "Cold Call Blitz" || cmp.type === "call") {
+        // Fetch Call Remarks
+        const res = await api.get(`/campaigns/${cmp.id}/call-remarks`);
+        setCampaignDetails(res.data?.data || []);
+      } else {
+        // Fetch Email Engagements from the Reports Controller
+        const res = await api.get(`/reports/export/engagements?campaignId=${cmp.id}`);
+        setCampaignDetails(res.data?.data || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch campaign details", e);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -288,24 +313,33 @@ export default function ManagerCampaigns() {
         <table className="mgr-data-table">
           <thead>
             <tr>
-              <th>Campaign ID</th>
+              <th>S.No.</th>
               <th>Client</th>
               <th>Type / Status</th>
               <th>Assigned Executives</th>
               <th style={{ textAlign: "right" }}>Manager Workflow Controls</th>
             </tr>
           </thead>
-          <tbody>
-            {paginatedCampaigns.map((cmp) => (
-              <tr key={cmp.id}>
-                <td className="font-mono text-xs font-bold text-slate-500">{cmp.id.substring(0, 8)}...</td>
+                    <tbody>
+            {/* Add 'index' here to calculate the Serial Number */}
+            {paginatedCampaigns.map((cmp, index) => (
+              <tr key={cmp.id} className="mgr-table-row-clickable hover:bg-slate-50 cursor-pointer" onClick={() => handleRowClick(cmp)}>
+                
+                {/* 1. S.No instead of ID */}
+                <td className="font-mono font-bold text-slate-500">
+                  {(page - 1) * limit + index + 1}
+                </td>
+                
+                {/* 2. Client Name automatically populates because of the backend fix */}
                 <td className="font-bold text-slate-900">{cmp.clientName}</td>
+                
                 <td>
                   <div className="font-semibold text-slate-800">{cmp.type}</div>
                   <span className={`mgr-badge ${cmp.status === "Active" ? "mgr-badge-green" : cmp.status === "Draft" ? "mgr-badge-amber" : "mgr-badge-purple"}`}>
                     {cmp.status}
                   </span>
                 </td>
+                
                 <td>
                   <div className="flex flex-wrap gap-1">
                     {cmp.executives.map((ex) => (
@@ -313,24 +347,28 @@ export default function ManagerCampaigns() {
                     ))}
                   </div>
                 </td>
+                
                 <td style={{ textAlign: "right" }}>
+                  {/* Notice e.stopPropagation() on ALL buttons so they don't trigger handleRowClick! */}
                   <div className="flex justify-end items-center gap-1.5 flex-wrap">
                     {cmp.status === "Draft" && (
-                      <button onClick={() => handleApproveCampaign(cmp)} className="mgr-btn mgr-btn-purple text-xs py-1"><CheckCircle size={12} /> Approve</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleApproveCampaign(cmp); }} className="mgr-btn mgr-btn-purple text-xs py-1"><CheckCircle size={12} /> Approve</button>
                     )}
                     {cmp.status !== "Draft" && (
-                      <button onClick={() => handleToggleStatus(cmp.id, cmp.status)} className="mgr-btn mgr-btn-outline text-xs py-1">
+                      <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(cmp.id, cmp.status); }} className="mgr-btn mgr-btn-outline text-xs py-1">
                         {cmp.status === "Active" ? <Pause size={12} /> : <Play size={12} />}
                         {cmp.status === "Active" ? "Pause" : "Resume"}
                       </button>
                     )}
-                    <button onClick={() => handleRoundRobinAssign(cmp.id)} className="mgr-btn mgr-btn-outline text-xs py-1" title="Distribute Leads"><Zap size={12} /> Leads</button>
-                    <button onClick={() => {
+                    <button onClick={(e) => { e.stopPropagation(); handleRoundRobinAssign(cmp.id); }} className="mgr-btn mgr-btn-outline text-xs py-1" title="Distribute Leads"><Zap size={12} /> Leads</button>
+                    <button onClick={(e) => {
+                        e.stopPropagation();
                         setAssignExecModalCmp(cmp);
                         if(execs.length > 0) setSelectedExecToAssign(execs[0].id);
                       }} className="mgr-btn mgr-btn-outline text-xs py-1"><UserPlus size={12} /></button>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setRemoveExecModalCmp(cmp);
                         if (cmp.executives.length > 0) setSelectedExecToRemove(cmp.executives[0].id);
                       }}
@@ -339,7 +377,7 @@ export default function ManagerCampaigns() {
                       <UserMinus size={12} />
                     </button>
                     {cmp.status === "Draft" && (
-                      <button onClick={() => handleDeleteCampaign(cmp.id)} className="mgr-btn mgr-btn-red text-xs py-1"><Trash2 size={12} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteCampaign(cmp.id); }} className="mgr-btn mgr-btn-red text-xs py-1"><Trash2 size={12} /></button>
                     )}
                   </div>
                 </td>
@@ -355,6 +393,142 @@ export default function ManagerCampaigns() {
           </div>
         </div>
       </div>
+
+      
+      {/* Details & Insights Modal */}
+      {isDetailsModalOpen && selectedCampaign && (
+        <div className="mgr-modal-overlay">
+          <div className="mgr-modal-content" style={{ maxWidth: '800px' }}>
+            <div className="mgr-modal-header bg-slate-50 rounded-t-lg border-b border-slate-100">
+              <span className="mgr-modal-title text-slate-800">Campaign Insights — {selectedCampaign.clientName}</span>
+              <button onClick={() => setIsDetailsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            
+                        <div className="mgr-modal-body p-4">
+               {/* 1. Header Info (Condensed) */}
+               <div className="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-lg mb-4 shadow-sm">
+                 <div>
+                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Campaign Name</div>
+                   <div className="text-base font-black text-slate-900 leading-tight">
+                     {selectedCampaign.name || `Campaign #${selectedCampaign.id.substring(0,6)}`}
+                   </div>
+                 </div>
+                 <div className="text-right">
+                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Strategy</div>
+                   <div className="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded leading-tight">
+                     {selectedCampaign.type}
+                   </div>
+                 </div>
+               </div>
+
+               {/* 2. AGGREGATE DASHBOARD ROW (Horizontal Flex layout to save huge vertical space) */}
+               <div className="grid grid-cols-3 gap-3 mb-4">
+                 {selectedCampaign.type === "Cold Call Blitz" || selectedCampaign.type === "call" ? (
+                   <>
+                     <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg shadow-sm">
+                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Calls</span>
+                       <span className="text-lg font-black text-slate-800 leading-none">{campaignDetails.length}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg shadow-sm">
+                       <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">Converted</span>
+                       <span className="text-lg font-black text-emerald-700 leading-none">
+                         {campaignDetails.filter(c => c.callOutcome?.toLowerCase() === "converted").length}
+                       </span>
+                     </div>
+                     <div className="flex justify-between items-center bg-purple-50 border border-purple-200 px-3 py-2 rounded-lg shadow-sm">
+                       <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wide">Talk Time</span>
+                       <span className="text-lg font-black text-purple-700 leading-none">
+                         {campaignDetails.reduce((acc, curr) => acc + (curr.callDurationMinutes || 0), 0)}m
+                       </span>
+                     </div>
+                   </>
+                 ) : (
+                   <>
+                     <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg shadow-sm">
+                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Sent</span>
+                       <span className="text-lg font-black text-slate-800 leading-none">{campaignDetails.length}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg shadow-sm">
+                       <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wide">Opens</span>
+                       <span className="text-lg font-black text-emerald-700 leading-none">
+                         {campaignDetails.reduce((acc, curr) => acc + (curr.opens || 0), 0)}
+                       </span>
+                     </div>
+                     <div className="flex justify-between items-center bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg shadow-sm">
+                       <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wide">Clicks</span>
+                       <span className="text-lg font-black text-blue-700 leading-none">
+                         {campaignDetails.reduce((acc, curr) => acc + (curr.clicks || 0), 0)}
+                       </span>
+                     </div>
+                   </>
+                 )}
+               </div>
+
+               {/* 3. TABLE SECTION (Tightened padding and reduced height) */}
+               <div className="text-[11px] font-bold text-slate-800 uppercase tracking-wider border-b pb-1.5 mb-2.5">
+                 {selectedCampaign.type === "Cold Call Blitz" || selectedCampaign.type === "call" ? "Live Call Remarks Log" : "Detailed Engagement Logs"}
+               </div>
+
+               <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-md bg-slate-50 shadow-inner">
+                 {campaignDetails.length === 0 ? (
+                   <div className="p-4 text-center text-slate-500 italic text-xs">No analytics or engagement data recorded yet.</div>
+                 ) : (
+                   <table className="w-full text-xs text-left">
+                     <thead className="bg-slate-200 text-slate-700 font-bold sticky top-0">
+                       {selectedCampaign.type === "Cold Call Blitz" || selectedCampaign.type === "call" ? (
+                         <tr>
+                           <th className="px-3 py-2">Outcome</th>
+                           <th className="px-3 py-2">Duration</th>
+                           <th className="px-3 py-2">Executive Notes</th>
+                         </tr>
+                       ) : (
+                         <tr>
+                           <th className="px-3 py-2">Recipient Email</th>
+                           <th className="px-3 py-2">Name</th>
+                           <th className="px-3 py-2 text-center">Status</th>
+                           <th className="px-3 py-2 text-center">Opens</th>
+                           <th className="px-3 py-2 text-center">Clicks</th>
+                           <th className="px-3 py-2">Sent Timestamp</th>
+                         </tr>
+                       )}
+                     </thead>
+                     <tbody className="divide-y divide-slate-200">
+                       {campaignDetails.map((detail, i) => (
+                         <tr key={i} className="hover:bg-white transition-colors">
+                           {selectedCampaign.type === "Cold Call Blitz" || selectedCampaign.type === "call" ? (
+                             <>
+                               <td className="px-3 py-2 font-semibold text-slate-800">{detail.callOutcome}</td>
+                               <td className="px-3 py-2 text-slate-600">{detail.callDurationMinutes ? `${detail.callDurationMinutes}m` : '-'}</td>
+                               <td className="px-3 py-2 text-slate-600">{detail.notes || '-'}</td>
+                             </>
+                           ) : (
+                             <>
+                               <td className="px-3 py-2 font-semibold text-slate-800">{detail.email}</td>
+                               <td className="px-3 py-2 text-slate-600">{detail.firstName} {detail.lastName}</td>
+                               <td className="px-3 py-2 text-center">
+                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${detail.status === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
+                                   {detail.status}
+                                 </span>
+                               </td>
+                               <td className="px-3 py-2 text-center font-mono text-emerald-700 font-bold">{detail.opens}</td>
+                               <td className="px-3 py-2 text-center font-mono text-blue-700 font-bold">{detail.clicks}</td>
+                               <td className="px-3 py-2 text-slate-500 text-[11px]">{detail.sentAt ? new Date(detail.sentAt).toLocaleString() : '-'}</td>
+                             </>
+                           )}
+                         </tr>
+                       ))}
+                     </tbody>
+                   </table>
+                 )}
+               </div>
+            </div>
+            
+            <div className="mgr-modal-footer">
+              <button onClick={() => setIsDetailsModalOpen(false)} className="mgr-btn mgr-btn-purple">Close Insights</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Primary Modal: Create Campaign */}
       {isCreateModalOpen && (
