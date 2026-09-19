@@ -1,7 +1,8 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, Upload, Power } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, Power } from "lucide-react";
+import ModalShell from "@/components/for_manager/modals/ModalShell";
 import api from "@/api/api";
 
 export default function ManagerClients() {
@@ -182,95 +183,174 @@ export default function ManagerClients() {
       </div>
 
       {/* Modal: Create Client */}
-      {isCreateModalOpen && (
-        <div className="mgr-modal-overlay">
-          <div className="mgr-modal-content">
-            <div className="mgr-modal-header">
-              <span className="mgr-modal-title">Provision New Client</span>
-              <button onClick={() => setIsCreateModalOpen(false)}><X size={18} /></button>
+      <ModalShell
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Provision New Client"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="mgr-btn mgr-btn-outline"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="create-client-form"
+              className="mgr-btn mgr-btn-purple"
+            >
+              Create Account
+            </button>
+          </>
+        }
+      >
+        <form id="create-client-form" onSubmit={handleCreateClient}>
+          <div className="lp-form-body">
+            <div className="lp-form-group">
+              <label className="lp-form-label">Client Organization Name</label>
+              <input
+                type="text"
+                required
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                className="lp-form-input"
+                placeholder="e.g. Acme Legal"
+              />
             </div>
-            <form onSubmit={handleCreateClient}>
-              <div className="mgr-modal-body">
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Client Organization Name</label>
-                  <input type="text" required value={newClientName} onChange={(e) => setNewClientName(e.target.value)} className="mgr-form-input" placeholder="e.g. Acme Legal" />
-                </div>
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Contact Email</label>
-                  <input type="email" required value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} className="mgr-form-input" placeholder="contact@acme.com" />
-                </div>
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Contact Person</label>
-                  <input type="text" required value={newContactPerson} onChange={(e) => setNewContactPerson(e.target.value)} className="mgr-form-input" placeholder="e.g. Jane Doe" />
-                </div>
-                <div className="mgr-form-group">
-                  <label className="mgr-form-label">Temporary Password</label>
-                  <input type="text" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mgr-form-input" placeholder="SecurePass123!" />
-                </div>
-              </div>
-              <div className="mgr-modal-footer">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="mgr-btn mgr-btn-outline">Cancel</button>
-                <button type="submit" className="mgr-btn mgr-btn-purple">Create Account</button>
-              </div>
-            </form>
+            <div className="lp-form-group">
+              <label className="lp-form-label">Contact Email</label>
+              <input
+                type="email"
+                required
+                value={newClientEmail}
+                onChange={(e) => setNewClientEmail(e.target.value)}
+                className="lp-form-input"
+                placeholder="contact@acme.com"
+              />
+            </div>
+            <div className="lp-form-group">
+              <label className="lp-form-label">Contact Person</label>
+              <input
+                type="text"
+                required
+                value={newContactPerson}
+                onChange={(e) => setNewContactPerson(e.target.value)}
+                className="lp-form-input"
+                placeholder="e.g. Jane Doe"
+              />
+            </div>
+            <div className="lp-form-group">
+              <label className="lp-form-label">Temporary Password</label>
+              <input
+                type="text"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="lp-form-input"
+                placeholder="SecurePass123!"
+              />
+            </div>
           </div>
-        </div>
-      )}
+        </form>
+      </ModalShell>
 
-      {/* Modal: Details & Lead Ingestion */}
-            {/* Modal: Details & Lead Ingestion */}
-      {selectedClient && (
-        <div className="mgr-modal-overlay">
-          <div className="mgr-modal-content" style={{ maxWidth: '550px' }}>
-            <div className="mgr-modal-header bg-slate-50 rounded-t-lg border-b border-slate-100">
-              <span className="mgr-modal-title text-slate-800">Client Workspace</span>
-              <button onClick={() => { setSelectedClient(null); setUploadStatus(""); }} className="text-slate-400 hover:text-slate-600">
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="mgr-modal-body flex flex-col gap-6 p-6">
-              
-              {/* Profile Card */}
-              <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white border border-slate-200 shadow-sm rounded-xl p-5">
-                <div>
-                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider mb-1">Organization</span>
-                  <div className="text-xl font-black text-slate-900">{selectedClient.name}</div>
-                  <div className="text-sm font-medium text-slate-500 mt-1">{selectedClient.contactEmail}</div>
+            {/* Modal: Client Workspace */}
+      <ModalShell
+        isOpen={!!selectedClient}
+        onClose={() => { setSelectedClient(null); setUploadStatus(""); }}
+        noHeader={true}
+        maxWidth="560px"
+        footer={
+          <button
+            onClick={() => { setSelectedClient(null); setUploadStatus(""); }}
+            className="mgr-btn mgr-btn-outline"
+          >
+            Close
+          </button>
+        }
+      >
+        {selectedClient && (
+          <>
+            {/* Gradient Hero Strip */}
+            <div style={{
+              background: "linear-gradient(135deg, #0f766e 0%, #0284c7 55%, #6366f1 100%)",
+              padding: "18px 24px",
+              position: "relative",
+              overflow: "hidden",
+            }}>
+              <div style={{ position: "absolute", top: -20, right: -20, width: 90, height: 90, borderRadius: "50%", background: "rgba(255,255,255,0.07)", pointerEvents: "none" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                {/* Client initial avatar */}
+                <div style={{
+                  width: 46, height: 46, borderRadius: 14,
+                  background: "rgba(255,255,255,0.2)",
+                  border: "1.5px solid rgba(255,255,255,0.3)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20, fontWeight: 900, color: "white", flexShrink: 0,
+                }}>
+                  {selectedClient.name?.[0]?.toUpperCase() || "C"}
                 </div>
-                <div className="flex flex-col items-start sm:items-end justify-center">
-                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider mb-2">Account Status</span>
-                  <span className={`mgr-badge ${selectedClient.status === "Active" ? "mgr-badge-green" : "mgr-badge-amber"} px-3 py-1 text-sm shadow-sm`}>
-                    {selectedClient.status}
-                  </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: "white", lineHeight: 1.2 }}>
+                      {selectedClient.name}
+                    </span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                      background: selectedClient.status === "Active" ? "rgba(16,185,129,0.3)" : "rgba(251,191,36,0.3)",
+                      border: `1px solid ${selectedClient.status === "Active" ? "rgba(16,185,129,0.5)" : "rgba(251,191,36,0.5)"}`,
+                      color: selectedClient.status === "Active" ? "#6ee7b7" : "#fde68a",
+                    }}>
+                      {selectedClient.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 3, fontWeight: 500 }}>
+                    {selectedClient.contactEmail}
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: 10, fontWeight: 800, color: "white",
+                  background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)",
+                  padding: "4px 10px", borderRadius: 8, whiteSpace: "nowrap",
+                }}>
+                  Client Account
                 </div>
               </div>
+            </div>
 
-              {/* Upload Dropzone Card */}
-              <div className="bg-white border-2 border-dashed border-purple-200 rounded-xl p-6 hover:border-purple-400 transition-colors duration-200">
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="p-2 bg-purple-100 text-purple-700 rounded-lg">
-                    <Upload size={20} />
+            {/* Body */}
+            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {/* Upload Card */}
+              <div style={{
+                background: "white", border: "2px dashed #c4b5fd",
+                borderRadius: 14, padding: "20px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <div style={{ padding: 8, background: "#ede9fe", borderRadius: 10, display: "flex" }}>
+                    <Upload size={18} color="#7c3aed" />
                   </div>
-                  <span className="font-extrabold text-lg text-purple-900">Ingest New Leads (CSV)</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#4c1d95" }}>Ingest New Leads (CSV)</span>
                 </div>
-                
-                <form onSubmit={handleCSVUpload} className="flex flex-col gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">List Audience Name</label>
-                    <input 
-                      type="text" 
-                      required 
+
+                <form onSubmit={handleCSVUpload} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div className="lp-form-group">
+                    <label className="lp-form-label">List Audience Name</label>
+                    <input
+                      type="text"
+                      required
                       value={uploadListName}
                       onChange={(e) => setUploadListName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50 focus:bg-white transition-all" 
+                      className="lp-form-input"
                       placeholder="e.g. Q4 Executive Outreach"
                     />
                   </div>
-                  
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">CSV Data File</label>
-                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-2 overflow-hidden">
+
+                  <div className="lp-form-group">
+                    <label className="lp-form-label">CSV Data File</label>
+                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8 }}>
                       <input
                         type="file"
                         accept=".csv"
@@ -281,23 +361,33 @@ export default function ManagerClients() {
                     </div>
                   </div>
 
-                  <button type="submit" disabled={!uploadFile || !uploadListName} className="mgr-btn mgr-btn-purple w-full justify-center py-2.5 mt-2 shadow-md">
+                  <button
+                    type="submit"
+                    disabled={!uploadFile || !uploadListName}
+                    className="mgr-btn mgr-btn-purple"
+                    style={{ justifyContent: "center", width: "100%", padding: "10px 0", marginTop: 4, boxShadow: "0 4px 12px rgba(124,58,237,0.3)" }}
+                  >
                     Initiate Secure Import
                   </button>
                 </form>
 
-                {/* Status Indicator */}
                 {uploadStatus && (
-                  <div className={`mt-5 p-3 rounded-lg text-sm font-bold flex items-center justify-center ${uploadStatus.startsWith("Error") ? "bg-red-50 text-red-700 border border-red-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
+                  <div style={{
+                    marginTop: 14, padding: "10px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: uploadStatus.startsWith("Error") ? "#fef2f2" : "#f0fdf4",
+                    color: uploadStatus.startsWith("Error") ? "#dc2626" : "#16a34a",
+                    border: `1px solid ${uploadStatus.startsWith("Error") ? "#fecaca" : "#bbf7d0"}`,
+                  }}>
                     {uploadStatus}
                   </div>
                 )}
               </div>
 
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </ModalShell>
     </div>
   );
 }

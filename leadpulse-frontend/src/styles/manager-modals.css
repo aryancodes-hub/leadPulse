@@ -1,0 +1,661 @@
+/* ============================================================
+   LEADPULSE — Manager Modal System Styles
+   Imported once in ModalShell.jsx — applies to all modals
+   across ManagerCampaigns, ManagerClients, ManagerExecutives
+   ============================================================ */
+
+/* ── Overlay ────────────────────────────────────────────────── */
+.lp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+  animation: lp-overlay-in 0.15s ease;
+}
+
+@keyframes lp-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal Content Box ──────────────────────────────────────── */
+.lp-modal-box {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px; /* overridden per modal via inline style/prop */
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 40px);
+  animation: lp-modal-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes lp-modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0);    }
+}
+
+/* ── Modal Header ───────────────────────────────────────────── */
+.lp-modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: #fafafa;
+}
+
+.lp-modal-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.lp-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.lp-modal-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ── Modal Body ─────────────────────────────────────────────── */
+.lp-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  /* No padding here — each modal content component sets its own */
+}
+
+/* Scrollbar styling inside modal body */
+.lp-modal-body::-webkit-scrollbar { width: 5px; }
+.lp-modal-body::-webkit-scrollbar-track { background: transparent; }
+.lp-modal-body::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 99px;
+}
+.lp-modal-body::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+/* ── Modal Footer ───────────────────────────────────────────── */
+.lp-modal-footer {
+  padding: 14px 24px;
+  background: #fafafa;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Insights Modal: Hero Header Gradient ───────────────────── */
+.lp-insights-hero {
+  padding: 18px 24px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lp-insights-hero-blob-1 {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+
+.lp-insights-hero-blob-2 {
+  position: absolute;
+  bottom: -30px;
+  right: 60px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.lp-insights-hero-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lp-insights-channel-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-insights-campaign-name {
+  font-size: 16px;
+  font-weight: 900;
+  color: white;
+  line-height: 1.2;
+}
+
+.lp-insights-campaign-id {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1px 7px;
+  border-radius: 6px;
+}
+
+.lp-insights-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.lp-insights-meta-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+}
+
+.lp-insights-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+}
+
+.lp-insights-type-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  padding: 5px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Tab Navigation ─────────────────────────────────────────── */
+.lp-tab-nav {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.lp-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #94a3b8;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.lp-tab-btn.active {
+  color: #7c3aed;
+  border-bottom-color: #7c3aed;
+}
+
+.lp-tab-count {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lp-tab-btn.active .lp-tab-count {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+/* ── Tab Content Panel ──────────────────────────────────────── */
+.lp-tab-panel {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.lp-tab-panel::-webkit-scrollbar { width: 5px; }
+.lp-tab-panel::-webkit-scrollbar-track { background: transparent; }
+.lp-tab-panel::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 99px;
+}
+
+/* ── KPI Card (Gradient) ────────────────────────────────────── */
+.lp-kpi-card {
+  border-radius: 14px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.lp-kpi-card-blob {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+.lp-kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.lp-kpi-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lp-kpi-icon-box {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-kpi-value {
+  margin-top: 10px;
+  font-size: 28px;
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+}
+
+.lp-kpi-value-unit {
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.lp-kpi-sub {
+  margin-top: 4px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.lp-kpi-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+
+/* ── Secondary Stat Card (Light) ────────────────────────────── */
+.lp-stat-card {
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lp-stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.lp-stat-value {
+  font-size: 22px;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.lp-stat-icon-box {
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Funnel / Progress Bar ──────────────────────────────────── */
+.lp-breakdown-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.lp-breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.lp-breakdown-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.lp-breakdown-count {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.lp-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.lp-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.lp-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.lp-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.lp-bar-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 20px;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* ── Log Table ──────────────────────────────────────────────── */
+.lp-log-table-wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lp-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.lp-log-table thead tr {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e9eef5 100%);
+}
+
+.lp-log-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.lp-log-table th.center,
+.lp-log-table td.center {
+  text-align: center;
+}
+
+.lp-log-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+
+.lp-log-table tbody tr:hover {
+  background: #f5f3ff;
+}
+
+.lp-log-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.lp-log-table td {
+  padding: 9px 14px;
+  vertical-align: middle;
+}
+
+/* ── Outcome / Status Badges ────────────────────────────────── */
+.lp-outcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.lp-outcome-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Outcome color classes */
+.lp-outcome-converted { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.lp-outcome-converted .lp-outcome-dot { background: #10b981; }
+
+.lp-outcome-callback { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.lp-outcome-callback .lp-outcome-dot { background: #0ea5e9; }
+
+.lp-outcome-notreached { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.lp-outcome-notreached .lp-outcome-dot { background: #f59e0b; }
+
+.lp-outcome-rejected { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.lp-outcome-rejected .lp-outcome-dot { background: #ef4444; }
+
+.lp-outcome-default { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.lp-outcome-default .lp-outcome-dot { background: #94a3b8; }
+
+/* Email status classes */
+.lp-status-sent    { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.lp-status-bounced { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.lp-status-default { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+
+/* ── Avatar Initial Circle ──────────────────────────────────── */
+.lp-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: white;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* ── Metric chip inline in table ────────────────────────────── */
+.lp-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 11px;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.lp-metric-chip-green { background: #d1fae5; color: #065f46; }
+.lp-metric-chip-blue  { background: #e0f2fe; color: #075985; }
+
+/* ── Empty State ────────────────────────────────────────────── */
+.lp-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+
+.lp-empty-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ede9fe;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-empty-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.lp-empty-desc {
+  font-size: 11px;
+  color: #64748b;
+  max-width: 260px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* ── Form Modal Styles ──────────────────────────────────────── */
+.lp-form-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lp-form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.lp-form-input,
+.lp-form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: #fff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.lp-form-input:focus,
+.lp-form-select:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* ── Pulse animation (status dot) ───────────────────────────── */
+@keyframes lp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(52, 211, 153, 0); }
+}
+
+.lp-pulse { animation: lp-pulse 2s infinite; }
