@@ -1,4 +1,5 @@
-﻿const { User } = require('leadpulse-data-model');
+﻿const { User, sequelize } = require('leadpulse-data-model');
+const { Op } = require('sequelize');
 const { NotFoundError, ConflictError, ForbiddenError } = require('../../lib/error');
 const bcrypt = require('bcryptjs');
 
@@ -35,11 +36,20 @@ class UserService {
     return userJson;
   }
 
-  async getUsers(managerId, pagination) {
+    async getUsers(managerId, pagination, unassigned = false) {
     const { limit, offset } = pagination;
     
+    let whereClause = { managerId, role: 'executive' };
+
+    // Filter out anyone who has an active campaign association
+    if (unassigned) {
+      whereClause.id = {
+        [Op.notIn]: sequelize.literal(`(SELECT executive_user_id FROM campaign_executives WHERE is_active = true)`)
+      };
+    }
+
     const { count, rows } = await User.findAndCountAll({
-      where: { managerId, role: 'executive' },
+      where: whereClause,
       limit,
       offset,
       attributes: { exclude: ['passwordHash', 'refreshTokenHash', 'resetTokenHash'] },

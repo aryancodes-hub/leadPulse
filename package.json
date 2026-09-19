@@ -12,7 +12,8 @@
   "scripts": {
     "dev:core": "npm run dev -w leadpulse-core-api",
     "dev:import": "npm run dev -w leadpulse-import-service",
-    "dev:email": "npm run dev -w leadpulse-email-service"
+    "dev:email": "npm run dev -w leadpulse-email-service",
+    "dev:front": "npm run dev -w leadpulse-frontend"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

@@ -1,4 +1,4 @@
-﻿const CampaignService = require('./campaign.service');
+const CampaignService = require('./campaign.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 
 class CampaignController {
@@ -16,10 +16,43 @@ class CampaignController {
   async getCampaigns(req, res, next) {
     try {
       const clientId = req.query.clientId;
-      if (!clientId) throw new Error('clientId query parameter is required');
-      const { campaigns, total } = await this.campaignService.getCampaigns(req.user.id, clientId, req.pagination);
-      const meta = { total, page: req.pagination.page, pageSize: req.pagination.pageSize, totalPages: Math.ceil(total / req.pagination.pageSize) };
-      return sendSuccess(res, campaigns, 'Campaigns retrieved successfully', meta);
+      const { campaigns, total } = await this.campaignService.getCampaigns(
+        req.user.id, 
+        clientId, 
+        req.pagination,
+        req.user.role 
+      );
+
+      // Reshape data to strictly match ManagerCampaigns.jsx expectations
+      const formattedCampaigns = campaigns.map(c => {
+        const cData = c.toJSON ? c.toJSON() : c;
+        
+        // Capitalize status ('active' -> 'Active')
+        const status = cData.status ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1) : "Draft";
+        
+        // Map backend enum to frontend display strings
+        const type = cData.type === 'call' ? "Cold Call Blitz" 
+                   : cData.type === 'email' ? "Email Sequence Drip" 
+                   : cData.type;
+
+        return {
+          id: cData.id,
+          clientName: cData.client?.name || cData.clientId, // Fallback to ID if client isn't joined
+          type: type,
+          status: status,
+          executives: cData.executives || [] // MUST be an array to prevent UI .map() crashes
+        };
+      });
+
+      const meta = { 
+        total, 
+        page: req.pagination.page, 
+        pageSize: req.pagination.pageSize, 
+        totalPages: Math.ceil(total / req.pagination.pageSize) 
+      };
+
+      // Nest inside a 'campaigns' object so data.campaigns works on the frontend
+      return sendSuccess(res, { campaigns: formattedCampaigns }, 'Campaigns retrieved successfully', meta);
     } catch (error) { next(error); }
   }
 

@@ -1,4 +1,4 @@
-﻿const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
+const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
 const { Op } = require('sequelize');
 
@@ -58,14 +58,33 @@ class CampaignService {
     });
   }
 
-  async getCampaigns(userId, clientId, pagination) {
-    await this.verifyClientAccess(userId, clientId);
+  async getCampaigns(userId, clientId, pagination, role) {
     const { limit, offset } = pagination;
+    let whereClause = {};
+
+    if (clientId) {
+      // 1. Specific client requested (original behavior)
+      await this.verifyClientAccess(userId, clientId);
+      whereClause.clientId = clientId;
+    } else if (role === 'campaign_manager') {
+      // 2. No client requested, but user is a manager (new frontend requirement)
+      const links = await ClientManager.findAll({ where: { userId } });
+      if (links.length === 0) {
+        return { campaigns: [], total: 0 }; // Manager has no clients yet
+      }
+      const clientIds = links.map(link => link.clientId);
+      whereClause.clientId = { [Op.in]: clientIds };
+    } else {
+      // 3. Fallback security block
+      throw new BadRequestError("clientId query parameter is required");
+    }
+
     const { count, rows } = await Campaign.findAndCountAll({
-      where: { clientId },
+      where: whereClause,
       limit, offset,
       order: [['createdAt', 'DESC']]
     });
+    
     return { campaigns: rows, total: count };
   }
 

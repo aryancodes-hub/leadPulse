@@ -66,10 +66,23 @@ class UserController {
    *       200:
    *         description: A paginated list of executives
    */
-  async getUsers(req, res, next) {
+    async getUsers(req, res, next) {
     try {
-      const { users, total } = await this.userService.getUsers(req.user.id, req.pagination);
+      const unassigned = req.query.unassigned === 'true';
+      const { users, total } = await this.userService.getUsers(req.user.id, req.pagination, unassigned);
       
+      // Reshape data to strictly match the frontend UI expectations
+      const formattedUsers = users.map(u => {
+        const uData = u.toJSON ? u.toJSON() : u;
+        return {
+          id: uData.id,
+          name: uData.fullName,
+          email: uData.email,
+          assignedCampaign: uData.assignedCampaign || "Unassigned",
+          status: uData.isActive ? "Active" : "Inactive"
+        };
+      });
+
       const meta = {
         total,
         page: req.pagination.page,
@@ -77,7 +90,8 @@ class UserController {
         totalPages: Math.ceil(total / req.pagination.pageSize)
       };
 
-      return sendSuccess(res, users, 'Executives retrieved successfully', meta);
+      // Nest inside a 'users' object so data.users works on the frontend
+      return sendSuccess(res, { users: formattedUsers }, 'Executives retrieved successfully', meta);
     } catch (error) {
       next(error);
     }

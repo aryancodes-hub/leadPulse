@@ -79,10 +79,20 @@ class ClientController {
    *       200:
    *         description: A list of clients
    */
-  async getClients(req, res, next) {
+    async getClients(req, res, next) {
     try {
       const { clients, total } = await this.clientService.getClients(req.user.id, req.pagination);
       
+      // 1 & 2. Format the data to exactly match the React frontend's expectations
+      const formattedClients = clients.map(c => {
+        const clientData = c.toJSON ? c.toJSON() : c;
+        return {
+          ...clientData,
+          status: clientData.isActive ? "Active" : "Paused",
+          activeCampaigns: clientData.activeCampaigns || 0 // Default to 0 if not returned by DB
+        };
+      });
+
       const meta = {
         total,
         page: req.pagination.page,
@@ -90,7 +100,8 @@ class ClientController {
         totalPages: Math.ceil(total / req.pagination.pageSize)
       };
 
-      return sendSuccess(res, clients, 'Clients retrieved successfully', meta);
+      // Wrap the array inside an object with the key 'clients'
+      return sendSuccess(res, { clients: formattedClients }, 'Clients retrieved successfully', meta);
     } catch (error) {
       next(error);
     }

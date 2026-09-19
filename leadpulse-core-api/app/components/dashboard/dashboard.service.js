@@ -1,4 +1,4 @@
-﻿const { Campaign, CallRemark, LeadEngagement, CampaignLead, ClientManager, sequelize } = require('leadpulse-data-model');
+const { Campaign, CallRemark, LeadEngagement, CampaignLead, ClientManager, sequelize } = require('leadpulse-data-model');
 const { Op } = require('sequelize');
 const { ForbiddenError } = require('../../lib/error');
 
@@ -27,8 +27,37 @@ class DashboardService {
     const opened = parseInt(engagements[0]?.totalOpened || 0, 10);
     const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(2) + '%' : '0%';
 
+    // Front-end requirements
+    const { User, Client } = require('leadpulse-data-model');
+    const activeClientsCount = await ClientManager.count({ where: { userId: managerId } });
+    const activeExecutivesCount = await User.count({ where: { managerId, role: 'executive', isActive: true } });
+
+    // Group conversions by client in JS to avoid Sequelize grouping quirks
+    const allConversions = await CallRemark.findAll({
+      where: { callOutcome: 'Converted' },
+      include: [{
+        model: Campaign,
+        as: 'campaign',
+        where: { createdByUserId: managerId },
+        include: [{ model: Client, as: 'client' }]
+      }]
+    });
+
+    const clientCounts = {};
+    for (const remark of allConversions) {
+       const cName = remark.campaign?.client?.name || 'Unknown Client';
+       clientCounts[cName] = (clientCounts[cName] || 0) + 1;
+    }
+    const conversionsByClient = Object.keys(clientCounts).map(name => ({
+       clientName: name,
+       conversions: clientCounts[name]
+    }));
+
     return {
       activeCampaigns: activeCampaignsCount,
+      activeClients: activeClientsCount,
+      activeExecutives: activeExecutivesCount,
+      conversionsByClient,
       totalDials,
       emailOpenRate: openRate
     };
