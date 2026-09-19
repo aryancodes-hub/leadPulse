@@ -16,6 +16,7 @@ export default function ManagerClients() {
    const [newContactPerson, setNewContactPerson] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [uploadFile, setUploadFile] = useState(null);
+  const [uploadListName, setUploadListName] = useState(""); // Add this line
   const [uploadStatus, setUploadStatus] = useState("");
   const limit = 10;
   const totalPages = Math.ceil(clients.length / limit) || 1;
@@ -94,10 +95,12 @@ export default function ManagerClients() {
   // Endpoint #15: POST /api/v1/lead-lists/upload
   const handleCSVUpload = async (e) => {
     e.preventDefault();
-    if (!uploadFile || !selectedClient) return;
+    if (!uploadFile || !selectedClient || !uploadListName) return;
+    
     const formData = new FormData();
     formData.append("file", uploadFile);
     formData.append("clientId", selectedClient.id);
+    formData.append("name", uploadListName); // Backend requires a name for the audience container
 
     setUploadStatus("Uploading CSV to S3 & initiating import job...");
     try {
@@ -105,8 +108,12 @@ export default function ManagerClients() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setUploadStatus("Upload complete! Background import service started.");
-    } catch {
-      setUploadStatus("Upload simulated successfully.");
+      setUploadListName(""); // reset form
+      setUploadFile(null);
+    } catch (error) {
+      console.error("Upload failed", error);
+      const msg = error.response?.data?.error?.message || error.response?.data?.message || "Upload failed";
+      setUploadStatus(`Error: ${msg}`);
     }
   };
 
@@ -131,9 +138,11 @@ export default function ManagerClients() {
             </tr>
           </thead>
           <tbody>
-            {paginatedClients.map((client) => (
+            {paginatedClients.map((client, index) => (
               <tr key={client.id} className="mgr-table-row-clickable">
-                <td onClick={() => setSelectedClient(client)} className="font-mono font-bold text-slate-500">{client.id}</td>
+                 <td onClick={() => setSelectedClient(client)} className="font-mono font-bold text-slate-500">
+                  {(page - 1) * limit + index + 1}
+                </td>
                 <td onClick={() => setSelectedClient(client)} className="font-bold text-slate-900">{client.name}</td>
                 <td onClick={() => setSelectedClient(client)}>
                   <span className="mgr-badge mgr-badge-purple">{client.activeCampaigns} Campaigns</span>
@@ -209,49 +218,82 @@ export default function ManagerClients() {
       )}
 
       {/* Modal: Details & Lead Ingestion */}
+            {/* Modal: Details & Lead Ingestion */}
       {selectedClient && (
         <div className="mgr-modal-overlay">
-          <div className="mgr-modal-content">
-            <div className="mgr-modal-header">
-              <span className="mgr-modal-title">Client Details — {selectedClient.id}</span>
-              <button onClick={() => { setSelectedClient(null); setUploadStatus(""); }}><X size={18} /></button>
+          <div className="mgr-modal-content" style={{ maxWidth: '550px' }}>
+            <div className="mgr-modal-header bg-slate-50 rounded-t-lg border-b border-slate-100">
+              <span className="mgr-modal-title text-slate-800">Client Workspace</span>
+              <button onClick={() => { setSelectedClient(null); setUploadStatus(""); }} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
             </div>
-            <div className="mgr-modal-body">
-              <div>
-                <span className="text-xs text-slate-400 font-bold block uppercase">Organization Name</span>
-                <span className="text-base font-bold text-slate-900">{selectedClient.name}</span>
-              </div>
-              <div>
-                <span className="text-xs text-slate-400 font-bold block uppercase">Contact Email</span>
-                <span className="text-sm font-semibold text-slate-700">{selectedClient.contactEmail}</span>
-              </div>
-              <div>
-                <span className="text-xs text-slate-400 font-bold block uppercase">Account Status</span>
-                <span className={`mgr-badge ${selectedClient.status === "Active" ? "mgr-badge-green" : "mgr-badge-amber"}`}>
-                  {selectedClient.status}
-                </span>
+            
+            <div className="mgr-modal-body flex flex-col gap-6 p-6">
+              
+              {/* Profile Card */}
+              <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white border border-slate-200 shadow-sm rounded-xl p-5">
+                <div>
+                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider mb-1">Organization</span>
+                  <div className="text-xl font-black text-slate-900">{selectedClient.name}</div>
+                  <div className="text-sm font-medium text-slate-500 mt-1">{selectedClient.contactEmail}</div>
+                </div>
+                <div className="flex flex-col items-start sm:items-end justify-center">
+                  <span className="text-xs text-slate-400 font-bold block uppercase tracking-wider mb-2">Account Status</span>
+                  <span className={`mgr-badge ${selectedClient.status === "Active" ? "mgr-badge-green" : "mgr-badge-amber"} px-3 py-1 text-sm shadow-sm`}>
+                    {selectedClient.status}
+                  </span>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100">
-                <span className="text-xs text-slate-800 font-extrabold block uppercase mb-2">Upload Lead List (CSV)</span>
-                <form onSubmit={handleCSVUpload} className="flex flex-col gap-2">
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) => setUploadFile(e.target.files[0])}
-                    className="text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                  />
-                  <button type="submit" disabled={!uploadFile} className="mgr-btn mgr-btn-purple text-xs py-1.5 self-start">
-                    <Upload size={12} /> Upload Leads CSV
+              {/* Upload Dropzone Card */}
+              <div className="bg-white border-2 border-dashed border-purple-200 rounded-xl p-6 hover:border-purple-400 transition-colors duration-200">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="p-2 bg-purple-100 text-purple-700 rounded-lg">
+                    <Upload size={20} />
+                  </div>
+                  <span className="font-extrabold text-lg text-purple-900">Ingest New Leads (CSV)</span>
+                </div>
+                
+                <form onSubmit={handleCSVUpload} className="flex flex-col gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">List Audience Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={uploadListName}
+                      onChange={(e) => setUploadListName(e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50 focus:bg-white transition-all" 
+                      placeholder="e.g. Q4 Executive Outreach"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">CSV Data File</label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-2 overflow-hidden">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        required
+                        onChange={(e) => setUploadFile(e.target.files[0])}
+                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={!uploadFile || !uploadListName} className="mgr-btn mgr-btn-purple w-full justify-center py-2.5 mt-2 shadow-md">
+                    Initiate Secure Import
                   </button>
                 </form>
-                {uploadStatus && <div className="text-xs font-semibold text-emerald-600 mt-2">{uploadStatus}</div>}
+
+                {/* Status Indicator */}
+                {uploadStatus && (
+                  <div className={`mt-5 p-3 rounded-lg text-sm font-bold flex items-center justify-center ${uploadStatus.startsWith("Error") ? "bg-red-50 text-red-700 border border-red-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
+                    {uploadStatus}
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="mgr-modal-footer">
-              <button onClick={() => { setSelectedClient(null); setUploadStatus(""); }} className="mgr-btn mgr-btn-purple">
-                Close View
-              </button>
+
             </div>
           </div>
         </div>
