@@ -57,6 +57,9 @@ class DashboardService {
       activeClients: activeClientsCount,
       activeExecutives: activeExecutivesCount,
       conversionsByClient,
+      activeClients: activeClientsCount,
+      activeExecutives: activeExecutivesCount,
+      conversionsByClient,
       totalDials,
       emailOpenRate: openRate
     };
