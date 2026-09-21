@@ -5,7 +5,8 @@
    ========================================================================== */
 
 .exec-spa-root {
-  min-height: 100vh;
+  height: 100vh;          /* 🚀 CHANGED: Strict lock, no stretching */
+  overflow: hidden;       /* 🚀 CHANGED: Prevents page-level scrolling */
   background-color: #f1f5f9;
   color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -24,6 +25,7 @@ body:has(.exec-spa-root) > header.navbar {
 .exec-sidebar {
   width: 260px;
   min-width: 260px;
+  height: 100%;     
   background: #0b1437;
   color: #ffffff;
   display: flex;
@@ -144,10 +146,10 @@ body:has(.exec-spa-root) > header.navbar {
    ========================================================================== */
 .exec-main-wrapper {
   flex: 1;
+  height: 100%;           /* 🚀 CHANGED: Matches parent exactly */
+  overflow-y: auto;       /* 🚀 CHANGED: Makes ONLY this section scrollable */
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  min-height: 100vh;
 }
 
 .exec-header-bar {
@@ -238,28 +240,31 @@ body:has(.exec-spa-root) > header.navbar {
   box-shadow: 0 0 0 2px #ffffff;
 }
 
-.exec-user-profile {
+/* .exec-user-profile {
   display: flex;
   align-items: center;
   gap: 10px;
-}
+} */
 
-.exec-avatar-circle {
-  width: 38px;
-  height: 38px;
+.lp-avatar {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #0066ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.25);
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  text-transform: uppercase;
 }
 
-.exec-user-name {
+/* .exec-user-name {
   font-size: 13px;
   font-weight: 700;
   color: #0f172a;
-}
+} */
 
 /* ==========================================================================
    PAGE E-1: EXECUTIVE DASHBOARD

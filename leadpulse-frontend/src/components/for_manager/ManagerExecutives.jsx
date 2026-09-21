@@ -12,6 +12,7 @@ export default function ManagerExecutives() {
   const [selectedExec, setSelectedExec] = useState(null);
   const [execName, setExecName] = useState("");
   const [execEmail, setExecEmail] = useState("");
+  const [execPass, setExecPass] = useState("");
   const limit = 10;
   const totalPages = Math.ceil(executives.length / limit) || 1;
   const paginatedExecs = executives.slice((page - 1) * limit, page * limit);
@@ -35,7 +36,7 @@ export default function ManagerExecutives() {
     const payload = {
       fullName: execName,
       email: execEmail,
-      password: "DefaultExecutivePass123!"
+      password: execPass
     };
 
     try {
@@ -209,6 +210,19 @@ export default function ManagerExecutives() {
                 onChange={(e) => setExecEmail(e.target.value)}
                 className="lp-form-input"
                 placeholder="jordan@team.com"
+                autoComplete="new-password" 
+              />
+            </div>
+            <div className="lp-form-group">
+              <label className="lp-form-label">Password</label>
+              <input
+                type="Password"
+                required
+                value={execPass}
+                onChange={(e) => setExecPass(e.target.value)}
+                className="lp-form-input"
+                placeholder="Password123!"
+                autoComplete="new-password" 
               />
             </div>
           </div>

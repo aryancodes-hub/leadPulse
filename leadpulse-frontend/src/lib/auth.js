@@ -37,6 +37,11 @@ export async function login(credentials) {
     }
 
     setAccessToken(data.accessToken);
+    
+    // NEW: Leave a breadcrumb that the user has an active session
+    if (typeof window !== "undefined") {
+        localStorage.setItem("hasSession", "true");
+    }
 
     return data;
 }
@@ -46,25 +51,44 @@ export async function logout() {
         await api.post("/auth/logout");
     } finally {
         clearAccessToken();
+        
+        // NEW: Clear the breadcrumb on logout
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("hasSession");
+        }
     }
 }
 
 export async function refreshToken() {
-    const response = await api.post(
-            "/auth/refresh-token"
-        );
+    try {
+        const response = await api.post("/auth/refresh-token");
+        const data = getData(response);
 
-    const data = getData(response);
+        if (!data?.accessToken) {
+            throw new Error("Refresh endpoint did not return an access token.");
+        }
 
-    if (!data?.accessToken) {
-        throw new Error(
-            "Refresh endpoint did not return an access token."
-        );
+        setAccessToken(data.accessToken);
+        
+        if (typeof window !== "undefined") {
+            localStorage.setItem("hasSession", "true");
+        }
+
+        return data;
+    } catch(error) {
+        if (error.response?.status === 401) {
+            clearAccessToken();
+            
+            if (typeof window !== "undefined") {
+                localStorage.removeItem("hasSession");
+            }
+            
+            if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+                window.location.href = "/login";
+            }
+        }
+        throw error;
     }
-
-    setAccessToken(data.accessToken);
-
-    return data;
 }
 
 export async function forgotPassword(email) {

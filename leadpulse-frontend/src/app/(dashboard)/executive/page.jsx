@@ -8,91 +8,73 @@ import ExecutiveDashboardView from "@/components/for_executive/ExecutiveDashboar
 import ExecutiveQueueView from "@/components/for_executive/ExecutiveQueueView";
 import ExecutiveCallHistoryTab from "@/components/for_executive/ExecutiveCallHistoryTab";
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
-import {
-  getExecutiveState,
-  switchActiveCampaignType,
-  MOCK_CALL_CAMPAIGN,
-  MOCK_EMAIL_CAMPAIGN,
-} from "@/lib/executiveStore";
+import { getExecutivePerformance } from "@/lib/dashboards"; // 🚀 Import real API
 
 export default function ExecutivePage() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [activeCampaign, setActiveCampaign] = useState(() => {
-    return getExecutiveState().activeCampaign;
-  });
+  const [activeCampaign, setActiveCampaign] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [executiveData, setExecutiveData] = useState(null);
 
-  const isCall = activeCampaign?.campaign_type === "call";
-
-  // Listen for store updates
+  // 🚀 Fetch Real Data on Load!
   useEffect(() => {
-    const handleUpdate = () => {
-      const state = getExecutiveState();
-      setActiveCampaign(state.activeCampaign);
-    };
-    window.addEventListener("exec-store-updated", handleUpdate);
-    return () => window.removeEventListener("exec-store-updated", handleUpdate);
+    getExecutivePerformance().then((data) => {
+      if (data && data.activeCampaign) {
+        setActiveCampaign({
+          ...data.activeCampaign,
+          campaign_type: data.activeCampaign.type 
+        });
+      }
+      if (data && data.executiveDetails) {
+        setExecutiveData(data.executiveDetails);
+      }
+      setIsLoading(false);
+    }).catch(err => {
+      console.error("Failed to fetch executive data", err);
+      setIsLoading(false);
+    });
   }, []);
 
-  // Handle switching campaign type (Call <-> Email)
-  const handleToggleCampaignType = () => {
-    const nextType = isCall ? "email" : "call";
-    const nextState = switchActiveCampaignType(nextType);
-    setActiveCampaign(nextState.activeCampaign);
-    setActiveTab("dashboard");
-  };
+  const isCall = activeCampaign?.campaign_type === "call" || activeCampaign?.campaign_type === "Cold Call Blitz";
 
-  const handleStartCalling = () => {
-    setActiveTab("queue");
-  };
+  const handleStartCalling = () => setActiveTab("queue");
+  const handleDialLead = () => setActiveTab("queue");
 
-  const handleDialLead = () => {
-    setActiveTab("queue");
-  };
+    const getBreadcrumbs = () => {
+    // 🚀 NEW: Completely remove breadcrumbs for Email Campaigns
+    if (!isCall) {
+      return [
+        { label: "Dashboard", onClick: () => setActiveTab("dashboard") }
+      ]; 
+    }
 
-  // Breadcrumbs configuration matching current view & campaign type
-  const getBreadcrumbs = () => {
+    // Call Campaign Breadcrumbs using REAL backend data
     if (activeTab === "queue") {
       return [
         { label: "Campaigns", onClick: () => setActiveTab("dashboard") },
-        { label: activeCampaign?.name || "TechCorp Outreach" },
+        { label: activeCampaign?.name || "Loading..." }, // Real Data!
         { label: "Call Queue" },
       ];
     }
     if (activeTab === "history") {
-      return [
-        { label: "Executive", onClick: () => setActiveTab("dashboard") },
-        { label: "Call History & Logs" },
-      ];
+      return [{ label: "Executive", onClick: () => setActiveTab("dashboard") }, { label: "Call History" }];
     }
     if (activeTab === "callbacks") {
-      return [
-        { label: "Executive", onClick: () => setActiveTab("dashboard") },
-        { label: "Scheduled Callbacks" },
-      ];
+      return [{ label: "Executive", onClick: () => setActiveTab("dashboard") }, { label: "Scheduled Callbacks" }];
     }
-    if (activeTab === "email_dispatch") {
-      return [
-        { label: "Campaigns", onClick: () => setActiveTab("dashboard") },
-        { label: activeCampaign?.name || "CloudScale Renewal Drip" },
-        { label: "50-Batch Dispatch Engine" },
-      ];
-    }
-    if (activeTab === "email_history") {
-      return [
-        { label: "Campaigns", onClick: () => setActiveTab("dashboard") },
-        { label: activeCampaign?.name || "CloudScale Renewal Drip" },
-        { label: "Transmission Stream" },
-      ];
-    }
+    
     return [
       { label: "Dashboard", onClick: () => setActiveTab("dashboard") },
-      { label: isCall ? "Call Overview" : "Email Pipeline" },
+      { label: "Call Overview" },
     ];
   };
 
+  if (isLoading) return <div className="p-10 text-center text-slate-500 font-bold">Loading Executive Workspace...</div>;
+
+  // Render the rest of your component as normal starting at the return!
   return (
     <AuthGuard allowedRoles={["executive"]}>
-      <div className="exec-spa-root">
+      <div className="exec-spa-root flex h-screen w-full overflow-hidden bg-slate-50">
         {/* Left Dark Navy Sidebar with conditional tabs */}
         <ExecutiveSidebar
           activeTab={activeTab}
@@ -101,12 +83,11 @@ export default function ExecutivePage() {
         />
 
         {/* Main Content Area */}
-        <div className="exec-main-wrapper">
+        <div className="exec-main-wrapper flex-1 overflow-y-auto">
           {/* Top Header Bar with Dev Campaign Switcher */}
           <ExecutiveHeader
             breadcrumbs={getBreadcrumbs()}
-            campaignType={activeCampaign?.campaign_type || "call"}
-            onToggleCampaignType={handleToggleCampaignType}
+            executiveData={executiveData} 
           />
 
           {/* Active View conditional on Campaign Type & Tab */}

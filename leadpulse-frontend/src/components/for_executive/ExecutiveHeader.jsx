@@ -1,81 +1,73 @@
 "use client";
 
-import { Bell, User, ChevronRight, Phone, Mail, ArrowLeftRight } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { Bell, ChevronRight } from "lucide-react";
+import AvatarInitial from "../shared/AvatarInitial.jsx";
 
-export default function ExecutiveHeader({
-  breadcrumbs = [],
-  campaignType = "call",
-  onToggleCampaignType,
-}) {
-  const { user } = useAuth();
-  const isCall = campaignType === "call";
+export default function ExecutiveHeader({ breadcrumbs = [], executiveData }) {
+  
 
   return (
     <header className="exec-header-bar">
-      {/* Breadcrumb Navigation */}
+      {/* Breadcrumb Navigation - Safely renders nothing if empty */}
       <div className="exec-breadcrumb-container">
-        {breadcrumbs.map((crumb, idx) => {
-          const isLast = idx === breadcrumbs.length - 1;
-          return (
-            <div key={crumb.label || idx} className="exec-crumb-item">
-              {idx > 0 && <ChevronRight size={14} className="exec-crumb-sep" />}
-              {isLast || !crumb.onClick ? (
-                <span className={`exec-crumb-text ${isLast ? "current" : ""}`}>
-                  {crumb.label}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={crumb.onClick}
-                  className="exec-crumb-link"
-                >
-                  {crumb.label}
-                </button>
-              )}
-            </div>
-          );
-        })}
+        {breadcrumbs.length > 0 &&
+          breadcrumbs.map((crumb, idx) => {
+            const isLast = idx === breadcrumbs.length - 1;
+            return (
+              <div key={crumb.label || idx} className="exec-crumb-item">
+                {idx > 0 && <ChevronRight size={14} className="exec-crumb-sep" />}
+                {isLast || !crumb.onClick ? (
+                  <span className={`exec-crumb-text ${isLast ? "current" : ""}`}>
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <button type="button" onClick={crumb.onClick} className="exec-crumb-link">
+                    {crumb.label}
+                  </button>
+                )}
+              </div>
+            );
+          })}
       </div>
 
-      {/* Dev Campaign Type Toggle (Switch between Call & Email campaign) */}
-      {onToggleCampaignType && (
-        <button
-          type="button"
-          onClick={onToggleCampaignType}
-          className={`exec-dev-campaign-toggle ${
-            isCall ? "call-mode" : "email-mode"
-          }`}
-          title="Click to toggle between Call and Email executive mode"
-        >
-          {isCall ? <Phone size={13} /> : <Mail size={13} />}
-          <span>Campaign Type: <strong>{isCall ? "CALL" : "EMAIL"}</strong></span>
-          <span className="exec-toggle-chip">
-            <ArrowLeftRight size={11} />
-            <span>Switch to {isCall ? "Email" : "Call"}</span>
-          </span>
-        </button>
-      )}
-
-      {/* Right Controls: Notification Bell and User Profile */}
+      {/* Right Controls: Notification Bell and Real User Profile */}
       <div className="exec-header-right">
-        <button
-          type="button"
-          className="exec-icon-btn"
-          title="Notifications"
-          aria-label="Notifications"
-        >
+        <button type="button" className="exec-icon-btn" title="Notifications">
           <Bell size={18} />
           <span className="exec-unread-dot" />
         </button>
 
-        <div className="exec-user-profile">
-          <div className="exec-avatar-circle" title={user?.email || "Executive"}>
-            <User size={18} className="text-white" />
-          </div>
-          <div className="exec-user-text">
-            <span className="exec-user-name">{user?.name || "Caller Executive"}</span>
-            <span className="exec-user-role">Executive</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9
+          }}
+        >
+          <AvatarInitial name={executiveData.fullName || executiveData.email}/>
+          <div>
+            <div
+              style={{
+                fontWeight: 700,
+                color: "#1e293b",
+                fontSize: 12
+              }}
+            >
+              {executiveData.fullName
+                ? `${executiveData.fullName}`.trim()
+                : executiveData.email}
+            </div>
+            {(executiveData.fullName) && (
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#94a3b8",
+                  fontFamily: "monospace"
+                }}
+              >
+                {executiveData.email}
+              </div>
+            )}
           </div>
         </div>
       </div>

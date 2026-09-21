@@ -1,4 +1,4 @@
-const { Campaign, CallRemark, LeadEngagement, CampaignLead, ClientManager, User, sequelize } = require('leadpulse-data-model');
+const { Campaign, CallRemark, LeadEngagement, CampaignLead, ClientManager, CampaignExecutive,User, Client, sequelize } = require('leadpulse-data-model');
 const { Op } = require('sequelize');
 const { ForbiddenError } = require('../../lib/error');
 
@@ -28,7 +28,6 @@ class DashboardService {
     const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(2) + '%' : '0%';
 
     // Front-end requirements
-    const { User, Client } = require('leadpulse-data-model');
     const activeClientsCount = await ClientManager.count({ where: { userId: managerId } });
     const activeExecutivesCount = await User.count({ where: { managerId, role: 'executive', isActive: true } });
 
@@ -66,8 +65,7 @@ class DashboardService {
   async getExecPerformance(requesterId, requesterRole, targetExecutiveId) {
     // Target defaults to requester if they are an executive
     const executiveUserId = targetExecutiveId || requesterId;
-    if (requesterRole === 'campaign_manager' && targetExecutiveId && targetExecutiveId !== requesterId) {
-      const { User } = require('leadpulse-data-model');
+    if (requesterRole === 'campaign_manager' && targetExecutiveId &&  targetExecutiveId !== requesterId) {
       const execUser = await User.findOne({ where: { id: targetExecutiveId, managerId: requesterId } });
       if (!execUser) throw new ForbiddenError("You do not manage this executive.");
     }
@@ -108,7 +106,17 @@ class DashboardService {
     // Assume an average default rate of $50 per conversion if not strictly tied to a campaign rate
     const AVG_CONVERSION_RATE = 50;
 
-    // 🚀 STRICT FRONTEND MAPPING: This perfectly matches the ExecutiveDashboardView.jsx expectations
+    const executiveInfo = await User.findByPk(executiveUserId, {
+      attributes: ['fullName', 'email']
+    });
+
+    const assignments = await CampaignExecutive.findAll({
+      where: { executiveUserId, isActive: true },
+      include: [{ model: Campaign, as: 'campaign', attributes: ['id', 'name', 'type', 'description'] }]
+    });
+    const activeCampaign = assignments.length > 0 ? assignments[0].campaign : null;
+
+    // STRICT FRONTEND MAPPING: This perfectly matches the ExecutiveDashboardView.jsx expectations
     return {
       totalCalls,
       pendingQueueSize,
@@ -116,7 +124,12 @@ class DashboardService {
       disqualifiedCount,
       inReviewCount,
       inReviewValue: inReviewCount * AVG_CONVERSION_RATE,
-      confirmedEarnings: approvedCount * AVG_CONVERSION_RATE
+      confirmedEarnings: approvedCount * AVG_CONVERSION_RATE,
+      activeCampaign,
+       executiveDetails: executiveInfo ? { 
+        fullName: executiveInfo.fullName, 
+        email: executiveInfo.email 
+      } : null
     };
   }
 
