@@ -11,7 +11,7 @@ import {
   Pause,
   Play,
   Trash2,
-  Zap,
+  Zap
 } from "lucide-react";
 import api from "@/api/api";
 import ModalShell from "@/components/for_manager/modals/ModalShell";
@@ -30,12 +30,14 @@ export default function ManagerCampaigns() {
   const [page, setPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateSequenceModalOpen, setIsCreateSequenceModalOpen] = useState(false);
+  const [editCampaignId, setEditCampaignId] = useState(null);
 
   // Assignment Modals
   const [assignExecModalCmp, setAssignExecModalCmp] = useState(null);
   const [removeExecModalCmp, setRemoveExecModalCmp] = useState(null);
   const [selectedExecToAssign, setSelectedExecToAssign] = useState("");
   const [selectedExecToRemove, setSelectedExecToRemove] = useState("");
+  const [campaignExecs, setCampaignExecs] = useState([]); // Holds the fetched executives
 
   // Wizard State
   const [cmpStep, setCmpStep] = useState(1);
@@ -48,6 +50,7 @@ export default function ManagerCampaigns() {
   const [newCmpSequence, setNewCmpSequence] = useState("");
   const [execSearch, setExecSearch] = useState("");
   const [selectedExecs, setSelectedExecs] = useState([]); // Array to handle multiple
+  const [selectedReassignExec, setSelectedReassignExec] = useState("");
 
   // Step 2: Logistics & Pricing
   const [newCmpDesc, setNewCmpDesc] = useState("");
@@ -109,6 +112,28 @@ export default function ManagerCampaigns() {
       .then((res) => setSequences(res.data?.data || []));
   }, [newCmpClient]);
 
+  const closeAndResetWizard = () => {
+    setIsCreateModalOpen(false);
+    setEditCampaignId(null);
+    setCmpStep(1);
+    setNewCmpName("");
+    setNewCmpClient("");
+    setNewCmpLeadList("");
+    setNewCmpSequence("");
+    setSelectedExecs([]);
+    setNewCmpDesc("");
+    setPricingModel("cost_per_lead");
+    setRatePerLead("");
+    setRetainerAmount("");
+    setExcludeClosedLeads(true);
+    setRequiresNetNewLeads(false);
+    setScheduleType("immediate");
+    setSubjectLine("");
+    setSenderName("");
+    setReplyToEmail("");
+    setEmailBodyHtml("");
+  };
+
   // Handle Nested Sequence Creation
   const handleCreateSequence = async (e) => {
     e.preventDefault();
@@ -126,6 +151,21 @@ export default function ManagerCampaigns() {
       setNewSequenceName("");
     } catch (error) {
       alert("Failed to create Sequence. Ensure Client and Lead List are selected.");
+    }
+  };
+
+    const handleEndCampaign = async (cmpId) => {
+    // 1. Fire the safeguard alert
+    if (!window.confirm("Are you sure you want to permanently end this campaign? This action cannot be undone.")) {
+      return; 
+    }
+    
+    // 2. If accepted, set status to completed
+    try {
+      await api.patch(`/campaigns/${cmpId}/status`, { status: "completed" });
+      setCampaigns((prev) => prev.map((c) => (c.id === cmpId ? { ...c, status: "Completed" } : c)));
+    } catch (e) {
+      alert("Failed to end campaign.");
     }
   };
 
@@ -152,78 +192,59 @@ export default function ManagerCampaigns() {
   const handleCreateCampaign = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    if (newCmpSequence === "CREATE_NEW" || !newCmpSequence) {
+    if ((newCmpSequence === "CREATE_NEW" || !newCmpSequence) && !editCampaignId) {
       return alert("Please select a valid sequence.");
     }
 
-    // Expand payload to include all the new wizard state variables
+    // Prepare the massive payload
     const payload = {
       name: newCmpName,
       type: newCmpType === "Cold Call Blitz" ? "call" : "email",
-      clientId: newCmpClient,
-      leadListId: newCmpLeadList,
-      sequenceId: newCmpSequence,
-
       description: newCmpDesc,
       pricingModel: pricingModel === "retainer" ? "flat_retainer" : "cost_per_lead",
       ratePerLead: pricingModel === "cost_per_lead" ? Number(ratePerLead) || 0 : 0,
       retainerAmount: pricingModel === "retainer" ? Number(retainerAmount) || 0 : 0,
-
       excludeClosedLeads: excludeClosedLeads,
       requiresNetNewLeads: requiresNetNewLeads,
       requiresManagerApproval: true,
       scheduleType: scheduleType,
-
-      // Fallbacks to empty strings for Call campaigns
       subjectLine: newCmpType === "Email Sequence Drip" ? subjectLine : "",
       senderName: newCmpType === "Email Sequence Drip" ? senderName : "",
       emailBodyHtml: newCmpType === "Email Sequence Drip" ? emailBodyHtml : "",
-      // Use a valid email format fallback in case the backend validates it strictly
-      replyToEmail: newCmpType === "Email Sequence Drip" ? replyToEmail : "noreply@leadpulse.com"
+      replyToEmail: newCmpType === "Email Sequence Drip" ? replyToEmail : "noreply@leadpulse.com",
+
+      // ONLY include structural links if we are CREATING (not editing)
+      ...(!editCampaignId && {
+        clientId: newCmpClient,
+        leadListId: newCmpLeadList,
+        sequenceId: newCmpSequence
+      })
     };
 
     try {
-      // Step 1: Create the Campaign
-      const cmpRes = await api.post("/campaigns", payload);
-      const createdCmp = cmpRes.data?.data ?? cmpRes.data;
-
-      // Step 2: Auto-chain Executive Assignments
-      if (selectedExecs.length > 0) {
-        await Promise.all(
-          selectedExecs.map((execId) =>
-            api.post(`/campaigns/${createdCmp.id}/executives`, { executiveUserId: execId })
-          )
-        );
+      if (editCampaignId) {
+        // 🔄 UPDATE ROUTE
+        await api.patch(`/campaigns/${editCampaignId}`, payload);
+        // We skip exec assignment during edits since it has its own dedicated modal/buttons!
+      } else {
+        // 🆕 CREATE ROUTE
+        const cmpRes = await api.post("/campaigns", payload);
+        const createdCmp = cmpRes.data?.data ?? cmpRes.data;
+        if (selectedExecs.length > 0) {
+          await Promise.all(
+            selectedExecs.map((execId) =>
+              api.post(`/campaigns/${createdCmp.id}/executives`, { executiveUserId: execId })
+            )
+          );
+        }
       }
 
-      // Step 3: Refresh the Campaign list
+      // Refresh list and cleanly reset wizard!
       const refreshRes = await api.get(`/campaigns?page=${page}&limit=${limit}`);
       setCampaigns(refreshRes.data?.data?.campaigns || []);
-
-      // Step 4: Close modal and reset ALL wizard state
-      setIsCreateModalOpen(false);
-      setCmpStep(1);
-
-      setNewCmpName("");
-      setNewCmpClient("");
-      setNewCmpLeadList("");
-      setNewCmpSequence("");
-      setSelectedExecs([]);
-
-      setNewCmpDesc("");
-      setPricingModel("cost_per_lead");
-      setRatePerLead("");
-      setRetainerAmount("");
-      setExcludeClosedLeads(true);
-      setRequiresNetNewLeads(false);
-      setScheduleType("immediate");
-
-      setSubjectLine("");
-      setSenderName("");
-      setReplyToEmail("");
-      setEmailBodyHtml("");
+      closeAndResetWizard();
     } catch (error) {
-      alert("Failed to create campaign. Check console.");
+      alert(`Failed to ${editCampaignId ? "update" : "create"} campaign. Check console.`);
       console.error(error);
     }
   };
@@ -307,17 +328,101 @@ export default function ManagerCampaigns() {
   // Endpoint #35: DELETE /api/v1/campaigns/:id/executives/:execId
   const handleRemoveExecFromCampaign = async (e) => {
     e.preventDefault();
+
+    // 1. Enforce the minimum 2 executives rule
+    if (!removeExecModalCmp || campaignExecs.length < 2) {
+      return alert(
+        "Cannot remove: A campaign must have at least 2 executives assigned before you can remove one (so at least 1 remains)."
+      );
+    }
+
     try {
-      await api.delete(`/campaigns/${removeExecModalCmp.id}/executives/${selectedExecToRemove}`);
+      // 2. Fire the Delete Request (with the optional transfer query parameter)
+      const queryParam = selectedReassignExec ? `?reassignToUserId=${selectedReassignExec}` : "";
+
+      await api.delete(
+        `/campaigns/${removeExecModalCmp.id}/executives/${selectedExecToRemove}${queryParam}`
+      );
+
+      // 3. Auto-chain round-robin redistribution if NO specific target was selected
+      if (!selectedReassignExec) {
+        // (Note: using method: "round_robin" as defined in your Swagger schema)
+        await api.post(`/campaigns/${removeExecModalCmp.id}/assign-leads`, {
+          method: "round_robin"
+        });
+        alert("Executive removed and their pending leads were automatically redistributed!");
+      } else {
+        alert("Executive removed and leads transferred successfully!");
+      }
+
+      // 4. Refresh the table and clean up modal state
       const refreshRes = await api.get(`/campaigns?page=${page}&limit=${limit}`);
       setCampaigns(refreshRes.data?.data?.campaigns || []);
+
       setRemoveExecModalCmp(null);
+      setSelectedReassignExec("");
     } catch (e) {
-      alert("Failed to remove executive");
+      const msg =
+        e.response?.data?.error?.message ||
+        e.response?.data?.message ||
+        "Failed to remove executive";
+      alert(`Error: ${msg}`);
+    }
+  };
+
+  const handleOpenRemoveExecModal = async (e, cmp) => {
+    e.stopPropagation();
+    setRemoveExecModalCmp(cmp);
+
+    try {
+      const res = await api.get(`/campaigns/${cmp.id}/executives`);
+      const fetchedExecs = res.data?.data || [];
+      setCampaignExecs(fetchedExecs);
+
+      if (fetchedExecs.length > 0) {
+        setSelectedExecToRemove(fetchedExecs[0].id);
+      }
+    } catch (err) {
+      alert("Failed to fetch executives for this campaign.");
     }
   };
 
   const handleRowClick = async (cmp) => {
+    if (cmp.status === "Draft") {
+      try {
+        // We must fetch full details because the table list only has summary data
+        const res = await api.get(`/campaigns/${cmp.id}`);
+        const fullData = res.data?.data || res.data;
+
+        setEditCampaignId(fullData.id);
+        setNewCmpName(fullData.name || "");
+        setNewCmpClient(fullData.clientId || "");
+        setNewCmpLeadList(fullData.leadListId || "");
+        setNewCmpSequence(fullData.sequenceId || "");
+        setNewCmpType(fullData.type === "call" ? "Cold Call Blitz" : "Email Sequence Drip");
+
+        setNewCmpDesc(fullData.description || "");
+        setPricingModel(fullData.pricingModel || "cost_per_lead");
+        setRatePerLead(fullData.ratePerLead || "");
+        setRetainerAmount(fullData.retainerAmount || "");
+        setExcludeClosedLeads(fullData.excludeClosedLeads ?? true);
+        setRequiresNetNewLeads(fullData.requiresNetNewLeads ?? false);
+        setScheduleType(fullData.scheduleType || "immediate");
+
+        setSubjectLine(fullData.subjectLine || "");
+        setSenderName(fullData.senderName || "");
+        setReplyToEmail(fullData.replyToEmail || "");
+        setEmailBodyHtml(fullData.emailBodyHtml || "");
+
+        setCmpStep(1);
+        setIsCreateModalOpen(true);
+      } catch (e) {
+        alert("Failed to load draft campaign details.");
+      }
+      return;
+    }
+
+    // 📊 EXISTING LOGIC: Open Insights if NOT Draft
     setSelectedCampaign(cmp);
     setCampaignDetails([]);
     setIsDetailsModalOpen(true);
@@ -325,11 +430,9 @@ export default function ManagerCampaigns() {
 
     try {
       if (cmp.type === "Cold Call Blitz" || cmp.type === "call") {
-        // Fetch Call Remarks
         const res = await api.get(`/campaigns/${cmp.id}/call-remarks`);
         setCampaignDetails(res.data?.data || []);
       } else {
-        // Fetch Email Engagements from the Reports Controller
         const res = await api.get(`/reports/export/engagements?campaignId=${cmp.id}`);
         setCampaignDetails(res.data?.data || []);
       }
@@ -419,16 +522,20 @@ export default function ManagerCampaigns() {
                         {cmp.status === "Active" ? "Pause" : "Resume"}
                       </button>
                     )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRoundRobinAssign(cmp.id);
-                      }}
-                      className="mgr-btn mgr-btn-outline text-xs py-1"
-                      title="Distribute Leads"
-                    >
-                      <Zap size={12} /> Leads
-                    </button>
+                                        {/* End Campaign Button (Email Campaigns Only) */}
+                    {(cmp.type === "Email Sequence Drip" || cmp.type === "email") && 
+                     (cmp.status === "Active" || cmp.status === "Paused") && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEndCampaign(cmp.id);
+                        }}
+                        className="mgr-btn mgr-btn-red text-xs py-1 ml-2 shadow-sm"
+                        title="End Campaign Permanently"
+                      >
+                        End Campaign
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -440,12 +547,7 @@ export default function ManagerCampaigns() {
                       <UserPlus size={12} />
                     </button>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRemoveExecModalCmp(cmp);
-                        if (cmp.executives.length > 0)
-                          setSelectedExecToRemove(cmp.executives[0].id);
-                      }}
+                      onClick={(e) => handleOpenRemoveExecModal(e, cmp)}
                       className="mgr-btn mgr-btn-red text-xs py-1"
                     >
                       <UserMinus size={12} />
@@ -497,10 +599,7 @@ export default function ManagerCampaigns() {
         noHeader={true}
         maxWidth="860px"
         footer={
-          <button
-            onClick={() => setIsDetailsModalOpen(false)}
-            className="mgr-btn mgr-btn-purple"
-          >
+          <button onClick={() => setIsDetailsModalOpen(false)} className="mgr-btn mgr-btn-purple">
             Close Insights
           </button>
         }
@@ -525,7 +624,9 @@ export default function ManagerCampaigns() {
             }}
           >
             <div className="mgr-modal-header">
-              <span className="mgr-modal-title">Create Campaign Blueprint</span>
+              <span className="mgr-modal-title">
+                {editCampaignId ? "Edit Campaign Blueprint" : "Create Campaign Blueprint"}
+              </span>
               <button onClick={() => setIsCreateModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -554,6 +655,7 @@ export default function ManagerCampaigns() {
                       <label className="mgr-form-label">Client Organization</label>
                       <select
                         required
+                        disabled={!!editCampaignId}
                         value={newCmpClient}
                         onChange={(e) => setNewCmpClient(e.target.value)}
                         className="mgr-form-select"
@@ -570,7 +672,7 @@ export default function ManagerCampaigns() {
                       <label className="mgr-form-label">Lead List (Audience)</label>
                       <select
                         required
-                        disabled={!newCmpClient}
+                        disabled={!!editCampaignId || !newCmpClient}
                         value={newCmpLeadList}
                         onChange={(e) => setNewCmpLeadList(e.target.value)}
                         className="mgr-form-select"
@@ -589,7 +691,7 @@ export default function ManagerCampaigns() {
                       <label className="mgr-form-label">Campaign Sequence</label>
                       <select
                         required
-                        disabled={!newCmpClient || !newCmpLeadList}
+                        disabled={!!editCampaignId || !newCmpClient || !newCmpLeadList}
                         value={newCmpSequence}
                         onChange={(e) => {
                           if (e.target.value === "CREATE_NEW") setIsCreateSequenceModalOpen(true);
@@ -842,8 +944,7 @@ export default function ManagerCampaigns() {
                   <button
                     type="button"
                     onClick={() => {
-                      setIsCreateModalOpen(false);
-                      setCmpStep(1);
+                      closeAndResetWizard();
                     }}
                     className="mgr-btn mgr-btn-outline"
                   >
@@ -868,7 +969,7 @@ export default function ManagerCampaigns() {
                       onClick={handleCreateCampaign}
                       className="mgr-btn mgr-btn-purple"
                     >
-                      Create Campaign
+                      {editCampaignId ? "Save Changes" : "Create Campaign"}
                     </button>
                   )}
                 </div>
@@ -1081,35 +1182,64 @@ export default function ManagerCampaigns() {
         </div>
       )}
 
+      {/* Modal: Remove Executive & Transfer Leads */}
       {removeExecModalCmp && (
         <div className="mgr-modal-overlay">
-          <div className="mgr-modal-content">
-            <div className="mgr-modal-header">
-              <span className="mgr-modal-title">Remove Executive</span>
-              <button onClick={() => setRemoveExecModalCmp(null)}>
+          <div className="mgr-modal-content" style={{ maxWidth: "500px" }}>
+            <div className="mgr-modal-header bg-red-50 border-b border-red-100 rounded-t-lg">
+              <span className="mgr-modal-title text-red-800">Remove Executive</span>
+              <button
+                onClick={() => setRemoveExecModalCmp(null)}
+                className="text-red-400 hover:text-red-600"
+              >
                 <X size={18} />
               </button>
             </div>
+
             <form onSubmit={handleRemoveExecFromCampaign}>
-              <div className="mgr-modal-body">
-                {removeExecModalCmp.executives.length === 0 ? (
-                  <div className="text-xs text-slate-500 font-semibold">No active executives.</div>
-                ) : (
-                  <div className="mgr-form-group">
-                    <label className="mgr-form-label">Select Executive</label>
-                    <select
-                      value={selectedExecToRemove}
-                      onChange={(e) => setSelectedExecToRemove(e.target.value)}
-                      className="mgr-form-select"
-                    >
-                      {removeExecModalCmp.executives.map((ex) => (
-                        <option key={ex.id} value={ex.id}>
-                          {ex.name || ex.fullName}
+              <div className="mgr-modal-body p-5">
+                <div className="mgr-form-group mb-5">
+                  <label className="mgr-form-label text-slate-700">
+                    1. Select Executive to Remove
+                  </label>
+                  <select
+                    required
+                    value={selectedExecToRemove}
+                    onChange={(e) => setSelectedExecToRemove(e.target.value)}
+                    className="mgr-form-select bg-slate-50"
+                  >
+                    {campaignExecs.map((ex) => (
+                      <option key={ex.executiveId} value={ex.executiveId}>
+                        {ex.name} : {ex.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mgr-form-group">
+                  <label className="mgr-form-label text-slate-700">
+                    2. Reassign Pending Leads To:
+                  </label>
+                  <select
+                    value={selectedReassignExec}
+                    onChange={(e) => setSelectedReassignExec(e.target.value)}
+                    className="mgr-form-select bg-slate-50"
+                  >
+                    {/* The default option triggers the auto-chain round-robin logic */}
+                    <option value="" className="font-bold text-purple-600">
+                      Auto-redistribute to all remaining (Round-Robin)
+                    </option>
+
+                    {/* This filters OUT the person we are removing so we can't transfer leads to them */}
+                    {campaignExecs
+                      .filter((ex) => ex.executiveId !== selectedExecToRemove)
+                      .map((ex) => (
+                        <option key={ex.executiveId} value={ex.executiveId}>
+                          Transfer specifically to: {ex.name || ex.fullName}
                         </option>
                       ))}
-                    </select>
-                  </div>
-                )}
+                  </select>
+                </div>
               </div>
               <div className="mgr-modal-footer">
                 <button
@@ -1119,11 +1249,9 @@ export default function ManagerCampaigns() {
                 >
                   Cancel
                 </button>
-                {removeExecModalCmp.executives.length > 0 && (
-                  <button type="submit" className="mgr-btn mgr-btn-red">
-                    Revoke
-                  </button>
-                )}
+                <button type="submit" className="mgr-btn mgr-btn-red shadow-sm">
+                  Confirm Removal
+                </button>
               </div>
             </form>
           </div>

@@ -1,4 +1,4 @@
-﻿const { User, sequelize } = require('leadpulse-data-model');
+﻿const { User, CampaignExecutive, Campaign, sequelize } = require('leadpulse-data-model');
 const { Op } = require('sequelize');
 const { NotFoundError, ConflictError, ForbiddenError } = require('../../lib/error');
 const bcrypt = require('bcryptjs');
@@ -36,18 +36,21 @@ class UserService {
     return userJson;
   }
 
-    async getUsers(managerId, pagination, unassigned = false) {
+  async getUsers(managerId, pagination, unassigned = false) {
     const { limit, offset } = pagination;
-    
     let whereClause = { managerId, role: 'executive' };
-
-    // Filter out anyone who has an active campaign association
+    // 1. Safe & Optimal filtering for Unassigned (No Raw Literals)
     if (unassigned) {
-      whereClause.id = {
-        [Op.notIn]: sequelize.literal(`(SELECT executive_user_id FROM campaign_executives WHERE is_active = true)`)
-      };
+      const activeExecs = await CampaignExecutive.findAll({ 
+        where: { isActive: true }, 
+        attributes: ['executiveUserId'] 
+      });
+      const assignedIds = activeExecs.map(e => e.executiveUserId);
+      if (assignedIds.length > 0) {
+        whereClause.id = { [Op.notIn]: assignedIds };
+      }
     }
-
+    // 2. Fetch the Users
     const { count, rows } = await User.findAndCountAll({
       where: whereClause,
       limit,
@@ -55,8 +58,42 @@ class UserService {
       attributes: { exclude: ['passwordHash', 'refreshTokenHash', 'resetTokenHash'] },
       order: [['createdAt', 'DESC']]
     });
-
-    return { users: rows, total: count };
+    // 3. OPTIMAL BULK FETCH: Get all campaign assignments for these users in one query
+    const userIds = rows.map(u => u.id);
+    let assignments = [];
+    if (userIds.length > 0) {
+      assignments = await CampaignExecutive.findAll({
+        where: { 
+          executiveUserId: { [Op.in]: userIds },
+          isActive: true 
+        },
+        include: [{
+          model: Campaign,
+          as: 'campaign', // Confirmed from leadpulse_associations.js
+          attributes: ['id', 'name']
+        }]
+      });
+    }
+    // 4. Map the assignments to the users in-memory
+    const usersWithAssignments = rows.map(user => {
+      const uData = user.toJSON();
+      const userAssignments = assignments.filter(a => a.executiveUserId === uData.id);
+      
+      if (userAssignments.length > 0) {
+        uData.activeCampaigns = userAssignments.map(a => ({
+          id: a.campaign.id,
+          name: a.campaign.name
+        }));
+        // Create a comma-separated string for the main table view
+        uData.assignedCampaign = userAssignments.map(a => a.campaign.name).join(', ');
+      } else {
+        uData.activeCampaigns = [];
+        uData.assignedCampaign = "Unassigned";
+      }
+      
+      return uData;
+    });
+    return { users: usersWithAssignments, total: count };
   }
 
   async getUserById(managerId, userId) {

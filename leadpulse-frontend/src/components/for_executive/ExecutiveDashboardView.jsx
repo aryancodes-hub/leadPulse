@@ -34,6 +34,7 @@ export default function ExecutiveDashboardView({
       try {
         const data = await getExecutivePerformance();
         if (data && isMounted) {
+          console.log(data)
           setBackendPerf(data);
         }
       } catch (err) {
@@ -56,8 +57,8 @@ export default function ExecutiveDashboardView({
     return CALL_OUTCOMES.reduce((sum, key) => sum + (activityCounts[key] || 0), 0);
   }, [backendPerf, activityCounts]);
 
-  const targetLeads = backendPerf?.targetLeads ?? campaign?.targetLeads ?? 50;
-  const pendingQueue = backendPerf?.pendingQueue ?? Math.max(0, targetLeads - totalCallsCompleted);
+  const targetLeads = (backendPerf?.pendingQueueSize || 0) + (backendPerf?.totalCalls || 0);
+  const pendingQueue = backendPerf?.pendingQueueSize ?? Math.max(0, targetLeads - totalCallsCompleted);
 
   // If email campaign, render dedicated email panel in dashboard viewMode
   if (isEmailCampaign) {

@@ -1,4 +1,4 @@
-const { Campaign, CallRemark, LeadEngagement, CampaignLead, ClientManager, sequelize } = require('leadpulse-data-model');
+const { Campaign, CallRemark, LeadEngagement, CampaignLead, ClientManager, User, sequelize } = require('leadpulse-data-model');
 const { Op } = require('sequelize');
 const { ForbiddenError } = require('../../lib/error');
 
@@ -72,19 +72,51 @@ class DashboardService {
       if (!execUser) throw new ForbiddenError("You do not manage this executive.");
     }
 
+    // Determine start of today for accurate daily tracking
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // 1. Basic Metrics
     const totalCalls = await CallRemark.count({ where: { executiveUserId } });
-    const conversions = await CallRemark.count({ where: { executiveUserId, callOutcome: 'Converted' } });
     
-    const pendingQueue = await CampaignLead.count({ 
+    const pendingQueueSize = await CampaignLead.count({ 
       where: { assignedExecutiveId: executiveUserId, status: 'pending' } 
     });
 
+    // 2. Performance Metrics
+    const conversionsToday = await CallRemark.count({
+      where: {
+        executiveUserId,
+        callOutcome: 'Converted',
+        createdAt: { [Op.gte]: startOfDay }
+      }
+    });
+
+    const disqualifiedCount = await CallRemark.count({
+      where: { executiveUserId, callOutcome: 'Not Interested' }
+    });
+
+    // 3. Approval & Financial Tracking (In Review vs Confirmed)
+    const inReviewCount = await CallRemark.count({
+      where: { executiveUserId, callOutcome: 'Converted', confirmedByUserId: null }
+    });
+
+    const approvedCount = await CallRemark.count({
+      where: { executiveUserId, callOutcome: 'Converted', confirmedByUserId: { [Op.not]: null } }
+    });
+
+    // Assume an average default rate of $50 per conversion if not strictly tied to a campaign rate
+    const AVG_CONVERSION_RATE = 50;
+
+    // 🚀 STRICT FRONTEND MAPPING: This perfectly matches the ExecutiveDashboardView.jsx expectations
     return {
-      executiveUserId,
       totalCalls,
-      totalConversions: conversions,
-      pendingQueueSize: pendingQueue,
-      conversionRate: totalCalls > 0 ? ((conversions / totalCalls) * 100).toFixed(2) + '%' : '0%'
+      pendingQueueSize,
+      conversionsToday,
+      disqualifiedCount,
+      inReviewCount,
+      inReviewValue: inReviewCount * AVG_CONVERSION_RATE,
+      confirmedEarnings: approvedCount * AVG_CONVERSION_RATE
     };
   }
 

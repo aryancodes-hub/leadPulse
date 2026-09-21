@@ -20,10 +20,11 @@ class TeamExecutionService {
   }
 
   async getExecutives(campaignId) {
-    return await CampaignExecutive.findAll({
+    const {count, rows}= await CampaignExecutive.findAndCountAll({
       where: { campaignId, isActive: true },
       include: [{ model: User, as: 'executive', attributes: ['id', 'fullName', 'email'] }]
     });
+    return {executives: rows, total:count}
   }
 
   async addExecutive(managerId, campaignId, executiveUserId) {

@@ -72,13 +72,15 @@ class UserController {
       const { users, total } = await this.userService.getUsers(req.user.id, req.pagination, unassigned);
       
       // Reshape data to strictly match the frontend UI expectations
+            // Reshape data to strictly match the frontend UI expectations
       const formattedUsers = users.map(u => {
         const uData = u.toJSON ? u.toJSON() : u;
         return {
           id: uData.id,
           name: uData.fullName,
           email: uData.email,
-          assignedCampaign: uData.assignedCampaign || "Unassigned",
+          assignedCampaign: uData.assignedCampaign || "Unassigned", 
+          activeCampaigns: uData.activeCampaigns || [],             
           status: uData.isActive ? "Active" : "Inactive"
         };
       });
@@ -91,7 +93,7 @@ class UserController {
       };
 
       // Nest inside a 'users' object so data.users works on the frontend
-      return sendSuccess(res, { users: formattedUsers }, 'Executives retrieved successfully', meta);
+      return sendSuccess(res, { users: formattedUsers }, 'Users retrieved successfully', meta);
     } catch (error) {
       next(error);
     }

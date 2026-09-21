@@ -1,4 +1,4 @@
-const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, CampaignExecutive, Client, sequelize } = require('leadpulse-data-model');
+const { Campaign, CampaignLead, LeadListMembership, ClientManager, CampaignExecutive, Client, User, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
 const { Op } = require('sequelize');
 
@@ -82,7 +82,19 @@ class CampaignService {
     const { count, rows } = await Campaign.findAndCountAll({
       where: whereClause,
       limit, offset,
-      include: [{ model: Client, as: 'client', attributes: ['name'] }],
+      include: [
+        { model: Client, as: 'client', attributes: ['name'] },
+        {
+          model: CampaignExecutive, as: 'executives', attributes:['unassignedAt', 'createdAt'], where: {isActive: true}, required: false, 
+          include:[
+            {
+              model: User,
+              as: 'executive',
+              attributes: ['id', 'fullName', 'email','isActive']
+            }
+          ]
+        }
+      ],
       order: [['createdAt', 'DESC']]
     });
     

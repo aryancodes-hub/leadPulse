@@ -8,8 +8,26 @@ class TeamExecutionController {
 
   async getExecutives(req, res, next) {
     try {
-      const execs = await this.service.getExecutives(req.params.id);
-      return sendSuccess(res, execs, 'Campaign executives retrieved');
+      const {executives, total} = await this.service.getExecutives(req.params.id);
+      const formatedExecutives = executives.map((exec)=>{
+        const execData = exec.toJson ? exec.toJSON() : exec;
+
+        return {
+          id: execData.id,
+          campaignId: execData.campaignId,
+          executiveId: execData.executiveUserId,
+          isActive: execData.isActive,
+          unassignedAt: execData.unassignedAt,
+          createdAt: execData.createdAt ,
+          name: execData.executive.fullName,
+          email: execData.executive.email
+        }
+      })
+      const meta = {
+        total
+      }
+      const data = formatedExecutives
+      return sendSuccess(res , data, 'Campaign executives retrieved', meta);
     } catch (error) { next(error); }
   }
 
