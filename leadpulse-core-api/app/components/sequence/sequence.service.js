@@ -1,4 +1,4 @@
-const { Sequence, Campaign, ClientManager } = require('leadpulse-data-model');
+const { Sequence, Campaign, ClientManager  } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError } = require('../../lib/error');
 
 class SequenceService {
@@ -16,14 +16,26 @@ class SequenceService {
   async getSequences(userId, clientId, pagination, userRole) {
     await this.verifyClientAccess(userId, clientId, userRole);
     const { limit, offset } = pagination;
-    const { Campaign } = require('leadpulse-data-model'); // Import Campaign    
     const { count, rows } = await Sequence.findAndCountAll({
       where: { clientId },
       limit, offset,
       order: [['createdAt', 'DESC']],
       include: [{ model: Campaign, as: 'campaigns' }] // MUST include campaigns for the frontend table
     });
-    return { sequences: rows, total: count };
+    
+    // Dynamically calculate converted leads per campaign
+    const { CallRemark } = require('leadpulse-data-model');
+    const sequences = rows.map(seq => seq.toJSON());
+    for (const seq of sequences) {
+      if (seq.campaigns) {
+        for (const camp of seq.campaigns) {
+          camp.convertedLeads = await CallRemark.count({ 
+            where: { campaignId: camp.id, callOutcome: 'Converted' } 
+          });
+        }
+      }
+    }
+    return { sequences, total: count };
   }
 
   async getSequenceById(userId, id, userRole) {

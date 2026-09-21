@@ -18,7 +18,7 @@ export default function ManagerSidebar({ activeTab, setActiveTab }) {
       console.error("Logout request failed, clearing local session", e);
     } finally {
       clearAccessToken();
-      window.location.href = "/login";
+      window.location.href = "/";
     }
   };
 

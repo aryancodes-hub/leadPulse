@@ -90,14 +90,6 @@ export default function DashboardView() {
         />
 
         <ScaleMetricCard
-          title="Total Cost"
-          value={stats.totalCost}
-          subtitle="Cumulative campaign spend"
-          trend="-3.8% efficiency gain"
-          icon={DollarSign}
-        />
-
-        <ScaleMetricCard
           title="Conversion Rate"
           value={stats.conversionRate}
           subtitle="Aggregate lead-to-deal conversion"

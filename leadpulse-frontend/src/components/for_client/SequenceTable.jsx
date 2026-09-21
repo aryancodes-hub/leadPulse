@@ -28,27 +28,31 @@ export default function SequenceTable({ sequences = [], onSelectSequence }) {
         <table className="client-main-table">
           <thead>
             <tr>
-              <th className="client-th-seq-id">Sequence ID</th>
+              <th className="client-th-seq-id w-16 text-center">S.No.</th>
               <th className="client-th-seq-name">Sequence Name</th>
               <th className="client-th-seq-desc">Description</th>
+              <th className="client-th-seq-count text-center">No. of Campaigns</th>
             </tr>
           </thead>
           <tbody>
-            {currentSequences.map((seq) => (
+            {currentSequences.map((seq, index) => (
               <tr 
                 key={seq.id} 
                 className="client-table-row hover:bg-slate-50 transition-colors cursor-pointer"
                 onClick={() => onSelectSequence(seq)}
                 title={`View campaigns for ${seq.name}`}
               >
-                <td className="client-td-id font-mono font-semibold">
-                  {seq.id}
+                <td className="client-td-id font-mono font-semibold text-slate-500 text-center">
+                  {currentPage * pageSize + index + 1}
                 </td>
                 <td className="client-td-name font-semibold">
                   {seq.name}
                 </td>
                 <td className="client-td-desc">
                   {seq.description}
+                </td>
+                <td className="client-td-count text-center font-bold text-slate-700">
+                  {seq.campaigns?.length || 0}
                 </td>
               </tr>
             ))}

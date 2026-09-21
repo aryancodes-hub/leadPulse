@@ -60,6 +60,11 @@ class CampaignController {
     async getCampaignById(req, res, next) {
     try {
       const campaign = await this.campaignService.getCampaign(req.user.id, req.params.id, req.user.role);
+      const { CallRemark } = require('leadpulse-data-model');
+      const convertedCount = await CallRemark.count({ 
+        where: { campaignId: req.params.id, callOutcome: 'Converted' } 
+      });
+      
       const cData = campaign.toJSON();
       const formattedResponse = {
         sequenceName: cData.sequence?.name || "Unknown Sequence",
@@ -68,7 +73,7 @@ class CampaignController {
           name: cData.name,
           type: cData.type === 'call' ? 'Phone' : 'Email',
           status: cData.status ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1) : 'Active',
-          convertedLeads: 0,
+          convertedLeads: convertedCount,
           totalDelivered: 0,
           targetAudience: cData.segmentationFilters ? JSON.stringify(cData.segmentationFilters) : 'Enterprise B2B Decision Makers',
           schedule: cData.scheduleType || 'Daily Automated Cadence',

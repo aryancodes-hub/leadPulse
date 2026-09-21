@@ -21,7 +21,7 @@ class SequenceController {
       const { sequences, total } = await this.sequenceService.getSequences(req.user.id, clientId, pagination, req.user.role);
       // Reshape the data to match the DeepDiveView JSON expectations exactly
       const formattedSequences = sequences.map(seq => {
-         const seqJSON = seq.toJSON();
+         const seqJSON = seq.toJSON ? seq.toJSON() : seq;
          return {
            id: seqJSON.id,
            name: seqJSON.name,
@@ -31,7 +31,10 @@ class SequenceController {
              name: camp.name,
              type: camp.type === 'call' ? 'Phone' : 'Email',
              status: camp.status ? camp.status.charAt(0).toUpperCase() + camp.status.slice(1) : 'Active',
-             convertedLeads: 0, 
+             convertedLeads: camp.convertedLeads || 0, 
+             cost: camp.pricingModel === 'flat_retainer' 
+                ? `$${Number(camp.retainerAmount || 0).toLocaleString()}` 
+                : `$${Number((camp.ratePerLead || 0) * (camp.convertedLeads || 0)).toLocaleString()}`,
              totalDelivered: 0,
              targetAudience: "Enterprise B2B Decision Makers",
              schedule: camp.scheduleType || 'Daily Automated',

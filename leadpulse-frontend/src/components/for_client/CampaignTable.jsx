@@ -28,21 +28,22 @@ export default function CampaignTable({ campaigns = [], onViewCampaign }) {
         <table className="client-main-table">
           <thead>
             <tr>
-              <th className="client-th-camp-id">Campaign ID</th>
+              <th className="client-th-camp-id w-16 text-center">S.No.</th>
               <th className="client-th-camp-name">Campaign Name</th>
               <th className="client-th-camp-type">Type</th>
+              <th className="client-th-camp-cost text-right">Cost</th>
             </tr>
           </thead>
           <tbody>
-            {currentCampaigns.map((camp) => (
+            {currentCampaigns.map((camp, index) => (
               <tr 
                 key={camp.id} 
                 className="client-table-row hover:bg-slate-50 transition-colors cursor-pointer transform hover:scale-105"
                 onClick={() => onViewCampaign(camp)}
                 title="View campaign details"
               >
-                <td className="client-td-id font-mono font-semibold">
-                  {camp.id}
+                <td className="client-td-id font-mono font-semibold text-slate-500 text-center">
+                  {currentPage * pageSize + index + 1}
                 </td>
                 <td className="client-td-name font-semibold">
                   {camp.name}
@@ -60,6 +61,9 @@ export default function CampaignTable({ campaigns = [], onViewCampaign }) {
                     )}
                     {camp.type}
                   </span>
+                </td>
+                <td className="client-td-cost font-semibold text-slate-700 text-right">
+                  {camp.cost}
                 </td>
               </tr>
             ))}

@@ -15,6 +15,7 @@ import {
 
 import {
     clearAccessToken,
+    getAccessToken,
 } from "@/api/api";
 
 const AuthContext = createContext(null);
@@ -30,6 +31,9 @@ export function AuthProvider({
     useEffect(() => {
                 async function restoreSession() {
             try {
+                if (!getAccessToken()) {
+                    throw new Error("No active session found");
+                }
                 const data = await refreshTokenService();
                 
                 if (data?.accessToken) {
@@ -47,7 +51,9 @@ export function AuthProvider({
                 }
             }
             catch (error) {
-                console.error("Session restore failed:", error);
+                if (error.message !== "No active session found") {
+                    console.error("Session restore failed:", error);
+                }
                 clearAccessToken();
                 setUser(null);
                 setRole(null);
@@ -78,18 +84,19 @@ export function AuthProvider({
     the login page back to calling `login()` once real JWTs exist, then
     this can be deleted.
     */
-    function loginDemo({ name, email, role: demoRole }) {
-        setUser({ name, email });
-        setRole(demoRole);
-        setIsAuthenticated(true);
-    }
+    // function loginDemo({ name, email, role: demoRole }) {
+    //     setUser({ name, email });
+    //     setRole(demoRole);
+    //     setIsAuthenticated(true);
+    // }
 
     async function logout() {
         try { await logoutService(); }
         finally {
             setUser(null);
             setRole(null);
-            setIsAuthenticated(false);
+            setIsAuthenticated(false),
+            window.location.href = "/"; // Added redirect here!
         }
     }
 
@@ -101,7 +108,7 @@ export function AuthProvider({
                 isAuthenticated,
                 isLoading,
                 login,
-                loginDemo,
+                // loginDemo,
                 logout,
             }}
         >

@@ -78,7 +78,7 @@ export default function ConvertedLeadsModal({ show, onClose, sequence, leads = [
                   <th>Lead ID</th>
                   <th>Lead Name</th>
                   <th>Contact Info</th>
-                  <th>Company</th>
+                  <th>Affiliation</th>
                   <th>Campaign</th>
                   <th>Converted Date</th>
                   <th>Status</th>
@@ -92,10 +92,10 @@ export default function ConvertedLeadsModal({ show, onClose, sequence, leads = [
                     </td>
                   </tr>
                 ) : (
-                  filteredLeads.map((lead) => (
+                  filteredLeads.map((lead, index) => (
                     <tr key={lead.id}>
-                      <td className="font-mono text-xs font-semibold text-slate-600">
-                        {lead.id}
+                      <td className="font-mono font-semibold text-slate-500 text-center">
+                        {index + 1}
                       </td>
                       <td className="font-semibold text-slate-900">
                         {lead.name}

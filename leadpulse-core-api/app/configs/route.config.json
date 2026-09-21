@@ -227,7 +227,6 @@
         "method": "get",
         "middlewareNameList": [
             "authenticate",
-            "requireCampaignManager",
             "validatePaginationQuery"
         ],
         "controller": "sequence",
@@ -238,7 +237,6 @@
         "method": "post",
         "middlewareNameList": [
             "authenticate",
-            "requireCampaignManager",
             "validateJsonContentType",
             "validateSequenceCreate"
         ],
@@ -284,7 +282,6 @@
         "method": "get",
         "middlewareNameList": [
             "authenticate",
-            "requireCampaignManager",
             "validateCampaignParams"
         ],
         "controller": "campaign",
