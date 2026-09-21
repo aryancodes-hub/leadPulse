@@ -39,14 +39,14 @@ export default function DashboardView() {
         const data = await getClientPortal();
         if (data && isMounted) {
           setStats({
-            totalConversion: data.totalConversion ? data.totalConversion.toLocaleString() : MOCK_CLIENT_STATS.totalConversion,
-            totalCost: data.totalCost ? (typeof data.totalCost === "number" ? `$${data.totalCost.toLocaleString()}` : data.totalCost) : MOCK_CLIENT_STATS.totalCost,
-            conversionRate: data.conversionRate ? `${data.conversionRate}%` : MOCK_CLIENT_STATS.conversionRate,
-            totalCalls: data.totalCalls ?? MOCK_CLIENT_STATS.totalCalls,
-            totalEmails: data.totalEmails ?? MOCK_CLIENT_STATS.totalEmails,
-            activeCampaigns: data.activeCampaigns ?? MOCK_CLIENT_STATS.activeCampaigns,
-            completedCampaigns: data.completedCampaigns ?? MOCK_CLIENT_STATS.completedCampaigns,
-            totalCampaigns: data.totalCampaigns ?? MOCK_CLIENT_STATS.totalCampaigns,
+            totalConversion: data.totalConversion !== undefined ? data.totalConversion.toLocaleString() : MOCK_CLIENT_STATS.totalConversion,
+            totalCost: data.totalCost !== undefined ? (typeof data.totalCost === "number" ? `$${data.totalCost.toLocaleString()}` : data.totalCost) : MOCK_CLIENT_STATS.totalCost,
+            conversionRate: data.conversionRate !== undefined ? `${data.conversionRate}%` : MOCK_CLIENT_STATS.conversionRate,
+            totalCalls: data.totalCalls !== undefined ? data.totalCalls : MOCK_CLIENT_STATS.totalCalls,
+            totalEmails: data.totalEmails !== undefined ? data.totalEmails : MOCK_CLIENT_STATS.totalEmails,
+            activeCampaigns: data.activeCampaigns !== undefined ? data.activeCampaigns : MOCK_CLIENT_STATS.activeCampaigns,
+            completedCampaigns: data.completedCampaigns !== undefined ? data.completedCampaigns : MOCK_CLIENT_STATS.completedCampaigns,
+            totalCampaigns: data.totalCampaigns !== undefined ? data.totalCampaigns : MOCK_CLIENT_STATS.totalCampaigns,
           });
         }
       } catch (err) {

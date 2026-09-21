@@ -1,17 +1,21 @@
-const { Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
+const { Sequence, Campaign, CampaignLead, LeadListMembership, LeadList, ClientManager, sequelize } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError, BadRequestError } = require('../../lib/error');
 const { Op } = require('sequelize');
 
 class CampaignService {
-  async verifyClientAccess(userId, clientId) {
+  async verifyClientAccess(userId, clientId, userRole) {
+    if (userRole === 'client') return; // Clients inherently have access to their own clientId
     const link = await ClientManager.findOne({ where: { userId, clientId } });
     if (!link) throw new ForbiddenError("You do not manage this client.");
   }
 
-  async getCampaign(userId, id) {
-    const campaign = await Campaign.findByPk(id);
+  async getCampaign(userId, id, userRole) {
+    const { Sequence } = require('leadpulse-data-model');
+    const campaign = await Campaign.findByPk(id, {
+      include: [{ model: Sequence, as: 'sequence', attributes: ['name'] }]
+    });
     if (!campaign) throw new NotFoundError("Campaign not found");
-    await this.verifyClientAccess(userId, campaign.clientId);
+    await this.verifyClientAccess(userId, campaign.clientId, userRole);
     return campaign;
   }
 

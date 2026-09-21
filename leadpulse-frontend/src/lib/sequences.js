@@ -4,15 +4,23 @@ const getData = (response) =>
     response.data?.data ??
     response.data;
 
-export async function getSequences(
-    params = {}
-) {
+export async function getSequences(params = {}) {
     const response =
         await api.get(
             "/sequences",
             { params }
         );
 
+    return getData(response);
+}
+
+// export async function getCampaignDetails(id) {
+//     const response = await api.get(`/campaigns/${id}`);
+//     return response.data?.data ?? response.data;
+// }
+
+export async function getCampaignDetails(id) {
+    const response = await api.get(`/campaigns/${id}`);
     return getData(response);
 }
 

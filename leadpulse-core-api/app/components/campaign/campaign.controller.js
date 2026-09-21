@@ -16,10 +16,11 @@ class CampaignController {
   async getCampaigns(req, res, next) {
     try {
       const clientId = req.query.clientId;
+      const pagination = req.pagination || { limit: 50, offset: 0, page: 1, pageSize: 50 };
       const { campaigns, total } = await this.campaignService.getCampaigns(
         req.user.id, 
         clientId, 
-        req.pagination,
+        pagination,
         req.user.role 
       );
 
@@ -46,9 +47,9 @@ class CampaignController {
 
       const meta = { 
         total, 
-        page: req.pagination.page, 
-        pageSize: req.pagination.pageSize, 
-        totalPages: Math.ceil(total / req.pagination.pageSize) 
+        page: pagination.page, 
+        pageSize: pagination.pageSize, 
+        totalPages: Math.ceil(total / pagination.pageSize) 
       };
 
       // Nest inside a 'campaigns' object so data.campaigns works on the frontend
@@ -56,10 +57,25 @@ class CampaignController {
     } catch (error) { next(error); }
   }
 
-  async getCampaignById(req, res, next) {
+    async getCampaignById(req, res, next) {
     try {
-      const campaign = await this.campaignService.getCampaign(req.user.id, req.params.id);
-      return sendSuccess(res, campaign, 'Campaign retrieved successfully');
+      const campaign = await this.campaignService.getCampaign(req.user.id, req.params.id, req.user.role);
+      const cData = campaign.toJSON();
+      const formattedResponse = {
+        sequenceName: cData.sequence?.name || "Unknown Sequence",
+        campaign: {
+          id: cData.id,
+          name: cData.name,
+          type: cData.type === 'call' ? 'Phone' : 'Email',
+          status: cData.status ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1) : 'Active',
+          convertedLeads: 0,
+          totalDelivered: 0,
+          targetAudience: cData.segmentationFilters ? JSON.stringify(cData.segmentationFilters) : 'Enterprise B2B Decision Makers',
+          schedule: cData.scheduleType || 'Daily Automated Cadence',
+          description: cData.description || `This ${cData.type} campaign was executed as part of the sequence.`
+        }
+      };
+      return sendSuccess(res, formattedResponse, 'Campaign retrieved successfully');
     } catch (error) { next(error); }
   }
 

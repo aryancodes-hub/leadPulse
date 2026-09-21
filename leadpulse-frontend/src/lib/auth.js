@@ -37,7 +37,6 @@ export async function login(credentials) {
     }
 
     setAccessToken(data.accessToken);
-
     return data;
 }
 

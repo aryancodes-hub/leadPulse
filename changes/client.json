@@ -1,0 +1,121 @@
+// Campaign Details Modal (CampaignDetailsModal.jsx)
+{
+  "sequenceName": "string [optional]",
+  "campaign": {
+    "id": "string | number [required]",
+    "name": "string [required]",
+    "type": "string ('Email' | 'Phone') [required]",
+    "status": "string [optional - defaults to 'Active']",
+    "convertedLeads": "number [optional - defaults to 0]",
+    "totalDelivered": "number [optional - defaults to convertedLeads * 5.4]",
+    "targetAudience": "string [optional - defaults to 'Enterprise B2B Decision Makers']",
+    "schedule": "string [optional - defaults to 'Daily Automated Cadence']",
+    "description": "string [optional - auto-generated if missing]"
+  }
+}
+
+// Campaign Table (CampaignTable.jsx)
+{
+  "campaigns": [
+    {
+      "id": "string | number [required]",
+      "name": "string [required]",
+      "type": "string ('Email' | 'Phone') [required]"
+    }
+  ]
+}
+
+// Converted Leads Details Card (ConvertedLeadsDetails.jsx)
+{
+  "totalConverted": "number [optional - sequence sum of campaign convertedLeads, defaults to 0]",
+  "onExportPDF": "function / handler [required]",
+  "onViewAllLeads": "function / handler [required]"
+}
+
+// Converted Leads Modal (ConvertedLeadsModal.jsx)
+{
+  "show": "boolean [required]",
+  "onClose": "function / handler [required]",
+  "sequence": {
+    "id": "string | number [required]",
+    "name": "string [required]"
+  },
+  "leads": [
+    {
+      "id": "string | number [required]",
+      "name": "string [required]",
+      "email": "string [required]",
+      "phone": "string [optional]",
+      "company": "string [required]",
+      "campaignName": "string [required]",
+      "convertedDate": "string [required]",
+      "status": "string [optional - defaults to 'Converted']"
+    }
+  ]
+}
+
+// DashboardView.jsx
+{
+  "totalConversion": "number | string [optional - aggregate verified client conversions]",
+  "totalCost": "number | string [optional - cumulative campaign spend in dollars]",
+  "conversionRate": "number | string [optional - percentage rate, e.g., 15.4 or '15.4%']",
+  "totalCalls": "number [optional - total calls placed across all sequences]",
+  "totalEmails": "number [optional - total emails sent across all campaigns]",
+  "activeCampaigns": "number [optional - count of currently running campaigns]",
+  "completedCampaigns": "number [optional - count of finished campaigns]",
+  "totalCampaigns": "number [optional - total registered campaigns]"
+}
+
+//DeepDiveView.jsx
+[
+  {
+    "id": "string [e.g., 'SEQ-101']",
+    "name": "string [e.g., 'Enterprise Acquisition Sequence #1']",
+    "description": "string [optional description]",
+    "campaigns": [
+      {
+        "id": "string [e.g., 'CMP-101']",
+        "name": "string [e.g., 'Nurture Cadence #1 - Cold Email']",
+        "type": "string ['Email' | 'Call']",
+        "convertedLeads": "number",
+        "totalDelivered": "number",
+        "status": "string ['Active' | 'Completed' | 'Paused']",
+        "targetAudience": "string",
+        "schedule": "string",
+        "description": "string"
+      }
+    ]
+  }
+]
+
+{
+  "id": "string",
+  "name": "string",
+  "description": "string",
+  "campaigns": [
+    {
+      "id": "string",
+      "name": "string",
+      "type": "string",
+      "convertedLeads": "number",
+      "totalDelivered": "number",
+      "status": "string"
+    }
+  ],
+  "leads": [
+    {
+      "id": "string [e.g., 'LEAD-CMP-101-101']",
+      "name": "string",
+      "email": "string",
+      "phone": "string [optional]",
+      "company": "string [optional]",
+      "campaignName": "string",
+      "convertedDate": "string [format: YYYY-MM-DD]",
+      "status": "string [e.g., 'Converted']"
+    }
+  ]
+}
+
+//Donutchart.jsx (no json dirctly)
+
+//scalemetriccard.jsx

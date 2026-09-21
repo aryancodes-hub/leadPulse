@@ -298,4 +298,3 @@ export function updateEmailJobStats(patch) {
   saveState(state);
   return state;
 }
-

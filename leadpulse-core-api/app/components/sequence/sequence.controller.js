@@ -1,4 +1,4 @@
-﻿const SequenceService = require('./sequence.service');
+const SequenceService = require('./sequence.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 
 class SequenceController {
@@ -15,17 +15,39 @@ class SequenceController {
 
   async getSequences(req, res, next) {
     try {
-      const clientId = req.query.clientId;
+      const clientId = req.user.role === 'client' ? req.user.clientId : req.query.clientId;
       if (!clientId) throw new Error('clientId query parameter is required');
-      const { sequences, total } = await this.sequenceService.getSequences(req.user.id, clientId, req.pagination);
-      const meta = { total, page: req.pagination.page, pageSize: req.pagination.pageSize, totalPages: Math.ceil(total / req.pagination.pageSize) };
-      return sendSuccess(res, sequences, 'Sequences retrieved successfully', meta);
+      const pagination = req.pagination || { limit: 50, offset: 0, page: 1, pageSize: 50 };
+      const { sequences, total } = await this.sequenceService.getSequences(req.user.id, clientId, pagination, req.user.role);
+      // Reshape the data to match the DeepDiveView JSON expectations exactly
+      const formattedSequences = sequences.map(seq => {
+         const seqJSON = seq.toJSON();
+         return {
+           id: seqJSON.id,
+           name: seqJSON.name,
+           description: seqJSON.description,
+           campaigns: (seqJSON.campaigns || []).map(camp => ({
+             id: camp.id,
+             name: camp.name,
+             type: camp.type === 'call' ? 'Phone' : 'Email',
+             status: camp.status ? camp.status.charAt(0).toUpperCase() + camp.status.slice(1) : 'Active',
+             convertedLeads: 0, 
+             totalDelivered: 0,
+             targetAudience: "Enterprise B2B Decision Makers",
+             schedule: camp.scheduleType || 'Daily Automated',
+             description: camp.description
+           }))
+         };
+      });
+      // Pass formattedSequences (array) so frontend `Array.isArray()` checks pass
+      const meta = { total, page: pagination.page, pageSize: pagination.pageSize, totalPages: Math.ceil(total / pagination.pageSize) };
+      return sendSuccess(res, formattedSequences, 'Sequences retrieved successfully', meta);
     } catch (error) { next(error); }
   }
 
   async getSequenceById(req, res, next) {
     try {
-      const sequence = await this.sequenceService.getSequenceById(req.user.id, req.params.id);
+      const sequence = await this.sequenceService.getSequenceById(req.user.id, req.params.id, req.user.role);
       return sendSuccess(res, sequence, 'Sequence retrieved successfully');
     } catch (error) { next(error); }
   }

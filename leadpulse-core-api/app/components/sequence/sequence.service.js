@@ -1,8 +1,9 @@
-﻿const { Sequence, Campaign, ClientManager } = require('leadpulse-data-model');
+const { Sequence, Campaign, ClientManager } = require('leadpulse-data-model');
 const { ForbiddenError, NotFoundError } = require('../../lib/error');
 
 class SequenceService {
-  async verifyClientAccess(userId, clientId) {
+  async verifyClientAccess(userId, clientId, userRole) {
+    if (userRole === 'client') return; // Clients inherently have access to their own clientId
     const link = await ClientManager.findOne({ where: { userId, clientId } });
     if (!link) throw new ForbiddenError("You do not manage this client.");
   }
@@ -12,26 +13,53 @@ class SequenceService {
     return await Sequence.create(data);
   }
 
-  async getSequences(userId, clientId, pagination) {
-    await this.verifyClientAccess(userId, clientId);
+  async getSequences(userId, clientId, pagination, userRole) {
+    await this.verifyClientAccess(userId, clientId, userRole);
     const { limit, offset } = pagination;
+    const { Campaign } = require('leadpulse-data-model'); // Import Campaign    
     const { count, rows } = await Sequence.findAndCountAll({
       where: { clientId },
       limit, offset,
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      include: [{ model: Campaign, as: 'campaigns' }] // MUST include campaigns for the frontend table
     });
     return { sequences: rows, total: count };
   }
 
-  async getSequenceById(userId, id) {
+  async getSequenceById(userId, id, userRole) {
+    const { Campaign, LeadListMembership, ClientLead } = require('leadpulse-data-model');
     const sequence = await Sequence.findByPk(id, {
       include: [{ model: Campaign, as: 'campaigns' }]
     });
     if (!sequence) throw new NotFoundError("Sequence not found");
     
     // Verify access AFTER fetching, so we know which client this belongs to
-    await this.verifyClientAccess(userId, sequence.clientId);
-    return sequence;
+    await this.verifyClientAccess(userId, sequence.clientId, userRole);
+    
+    // Fetch converted leads
+    const memberships = await LeadListMembership.findAll({
+      where: { leadListId: sequence.leadListId, status: 'Converted' },
+      include: [{ model: ClientLead, as: 'clientLead' }]
+    });
+
+    const leads = memberships.map(m => {
+       const lead = m.clientLead || {};
+       return {
+         id: lead.id,
+         name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Unknown Lead',
+         email: lead.email || '-',
+         phone: lead.phone || '-',
+         company: lead.companyName || '-',
+         campaignName: 'Sequence Conversion', 
+         convertedDate: m.updatedAt ? m.updatedAt.toISOString().split('T')[0] : 'N/A',
+         status: 'Converted'
+       };
+    });
+
+    const seqData = sequence.toJSON();
+    seqData.leads = leads;
+    
+    return seqData;
   }
 }
 

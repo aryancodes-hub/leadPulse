@@ -88,41 +88,58 @@ class DashboardService {
     };
   }
 
-  async getClientPortalSummary(userId, userRole, targetClientId) {
-    let clientId = targetClientId;
+    async getClientPortalSummary(userId, userRole, targetClientId) {
+      let clientId = targetClientId;
 
-    // Verify manager link if requested by manager
-    if (userRole === 'campaign_manager') {
-      const link = await ClientManager.findOne({ where: { userId, clientId } });
-      if (!link) throw new ForbiddenError("You do not manage this client.");
+      if (userRole === 'campaign_manager') {
+        const link = await ClientManager.findOne({ where: { userId, clientId } });
+        if (!link) throw new ForbiddenError("You do not manage this client.");
+      }
+
+      const campaignStats = await Campaign.findAll({
+        where: { clientId },
+        attributes: ['status', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+        group: ['status'],
+        raw: true
+      });
+
+      let activeCampaigns = 0;
+      let completedCampaigns = 0;
+      let totalCampaigns = 0;
+      
+      campaignStats.forEach(stat => {
+        const count = parseInt(stat.count, 10);
+        totalCampaigns += count;
+        if (stat.status === 'active') activeCampaigns += count;
+        if (stat.status === 'completed') completedCampaigns += count;
+      });
+
+      const { LeadListMembership, LeadList } = require('leadpulse-data-model');
+      const totalConversion = await LeadListMembership.count({
+        include: [{ model: LeadList, as: 'leadList', where: { clientId } }],
+        where: { status: 'Converted' }
+      });
+      const totalLeads = await LeadListMembership.count({
+        include: [{ model: LeadList, as: 'leadList', where: { clientId } }]
+      });
+      const conversionRate = totalLeads > 0 ? ((totalConversion / totalLeads) * 100).toFixed(1) : "0.0";
+      const totalCalls = await CallRemark.count({
+        include: [{ model: Campaign, as: 'campaign', where: { clientId }, attributes: [] }]
+      });
+      const totalEmails = await LeadEngagement.count({
+        include: [{ model: Campaign, as: 'campaign', where: { clientId }, attributes: [] }]
+      });
+
+      return {
+        totalConversion,
+        totalCost: 0, // Update this if you add billing logic later
+        conversionRate,
+        totalCalls,
+        totalEmails,
+        activeCampaigns,
+        completedCampaigns,
+        totalCampaigns
+      };
     }
-
-    const campaignStats = await Campaign.findAll({
-      where: { clientId },
-      attributes: [
-        'status',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
-      group: ['status'],
-      raw: true
-    });
-
-    const { LeadListMembership, LeadList } = require('leadpulse-data-model');
-    
-    // Deduplicated conversions based on unique client lead list memberships
-    const totalConversions = await LeadListMembership.count({
-      include: [{ model: LeadList, as: 'leadList', where: { clientId } }],
-      where: { status: 'Converted' }
-    });
-
-    return {
-      clientId,
-      campaignsByStatus: campaignStats,
-      totalConversions
-    };
-  }
 }
-
 module.exports = DashboardService;
-
-

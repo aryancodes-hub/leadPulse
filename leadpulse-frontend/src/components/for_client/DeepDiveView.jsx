@@ -7,7 +7,7 @@ import SequenceTable from "@/components/for_client/SequenceTable";
 import CampaignTable from "@/components/for_client/CampaignTable";
 import ConvertedLeadsModal from "@/components/for_client/ConvertedLeadsModal";
 import CampaignDetailsModal from "@/components/for_client/CampaignDetailsModal";
-import { getSequences, getSequence } from "@/lib/sequences";
+import { getSequences, getSequence, getCampaignDetails } from "@/lib/sequences";
 import { exportConvertedLeads } from "@/lib/reports";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 
@@ -259,8 +259,10 @@ export default function DeepDiveView() {
           setSequences(data);
         }
       } catch (err) {
+        console.error("DeepDiveView Sequence Fetch Error:", err);
+        // Do not fall back to mock data, let the UI reflect real failure
         if (isMounted) {
-          setSequences(INITIAL_MOCK_SEQUENCES);
+          setSequences([]); // Set to empty to avoid confusing the user with mocks
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -407,7 +409,11 @@ export default function DeepDiveView() {
             <div className="client-campaign-right-col">
               <CampaignTable
                 campaigns={selectedSequence.campaigns}
-                onViewCampaign={(camp) => setViewingCampaign(camp)}
+                onViewCampaign={async (camp) => {
+                  try { const data = await getCampaignDetails(camp.id);
+                    setViewingCampaign(data); } 
+                  catch (e) { console.error("Failed to fetch campaign details", e); }
+                }}
               />
             </div>
           </div>
@@ -425,8 +431,8 @@ export default function DeepDiveView() {
       <CampaignDetailsModal
         show={Boolean(viewingCampaign)}
         onClose={() => setViewingCampaign(null)}
-        campaign={viewingCampaign}
-        sequenceName={selectedSequence?.name}
+        campaign={viewingCampaign?.campaign}
+        sequenceName={viewingCampaign?.sequenceName}
       />
     </div>
   );
