@@ -1008,3 +1008,5 @@ body:has(.exec-spa-root) > header.navbar {
   }
 }
 
+/* Import manager modal UI at the bottom so it overwrites any conflicting executive rules */
+@import '../../../styles/manager-modals.css';

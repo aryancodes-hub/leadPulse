@@ -55,10 +55,7 @@ export default function ExecutiveSidebar({ activeTab, setActiveTab, campaignType
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => setActiveTab("email_dispatch")} className={`exec-nav-item ${activeTab === "email_dispatch" ? "active" : ""}`}>
-              <Send size={18} className="exec-nav-icon" />
-              <span className="exec-nav-label">DISPATCH MONITOR</span>
-            </button>
+            <hr></hr>
           )}
         </nav>
       </div>

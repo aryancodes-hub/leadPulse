@@ -122,6 +122,23 @@ class CampaignController {
     }
   }
 
+    async getEmailDashboard(req, res, next) {
+    try {
+      const dashboardData = await this.campaignService.getEmailDashboard(
+        req.user.id, 
+        req.params.id
+      );
+      
+      return sendSuccess(
+        res, 
+        dashboardData, 
+        "Email dashboard data retrieved successfully"
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async approveCampaign(req, res, next) {
     try {
       const campaign = await this.campaignService.approveCampaign(req.user.id, req.params.id);
