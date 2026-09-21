@@ -18,46 +18,14 @@ class CampaignController {
   async getCampaigns(req, res, next) {
     try {
       const clientId = req.query.clientId;
+      
+      // The Service now handles all data formatting!
       const { campaigns, total } = await this.campaignService.getCampaigns(
         req.user.id,
         clientId,
         req.pagination,
         req.user.role
       );
-
-      // Reshape data to strictly match ManagerCampaigns.jsx expectations
-      const formattedCampaigns = campaigns.map((c) => {
-        const cData = c.toJSON ? c.toJSON() : c;
-
-        // Capitalize status ('active' -> 'Active')
-        const status = cData.status
-          ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1)
-          : "Draft";
-
-        // Map backend enum to frontend display strings
-        const type =
-          cData.type === "call"
-            ? "Cold Call Blitz"
-            : cData.type === "email"
-              ? "Email Sequence Drip"
-              : cData.type;
-
-        return {
-          id: cData.id,
-          name: cData.name, 
-          clientName: cData.client?.name || cData.clientId, 
-          type: type,
-          status: status,
-          executives: (cData.executives || []).map((ex) => ({
-          id: ex.executive?.id,
-          name: ex.executive?.fullName,
-          email: ex.executive?.email,
-          status: ex.executive?.isActive ? "Active" : "Inactive",
-          assignedat: ex.createdAt,
-          unassignedat: ex.unassignedAt
-          }))
-        };
-      });
 
       const meta = {
         total,
@@ -66,10 +34,9 @@ class CampaignController {
         totalPages: Math.ceil(total / req.pagination.pageSize)
       };
 
-      // Nest inside a 'campaigns' object so data.campaigns works on the frontend
       return sendSuccess(
         res,
-        { campaigns: formattedCampaigns },
+        { campaigns },
         "Campaigns retrieved successfully",
         meta
       );
@@ -80,10 +47,14 @@ class CampaignController {
 
   async getCampaignById(req, res, next) {
     try {
-      const campaign = await this.campaignService.getCampaign(req.user.id, req.params.id);
-      return sendSuccess(res, campaign, "Campaign retrieved successfully");
-    } catch (error) {
-      next(error);
+      const formattedResponse = await this.campaignService.getCampaign(
+        req.user.id, 
+        req.params.id, 
+        req.user.role
+      );
+      return sendSuccess(res, formattedResponse, 'Campaign retrieved successfully');
+    } catch (error) { 
+      next(error); 
     }
   }
 

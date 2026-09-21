@@ -15,12 +15,30 @@ class SequenceController {
 
   async getSequences(req, res, next) {
     try {
-      const clientId = req.query.clientId;
+      const clientId = req.user.role === 'client' ? req.user.clientId : req.query.clientId;
       if (!clientId) throw new Error('clientId query parameter is required');
-      const { sequences, total } = await this.sequenceService.getSequences(req.user.id, clientId, req.pagination);
-      const meta = { total, page: req.pagination.page, pageSize: req.pagination.pageSize, totalPages: Math.ceil(total / req.pagination.pageSize) };
+      
+      const pagination = req.pagination || { limit: 50, offset: 0, page: 1, pageSize: 50 };
+      
+      // The service now handles all data formatting
+      const { sequences, total } = await this.sequenceService.getSequences(
+        req.user.id, 
+        clientId, 
+        pagination, 
+        req.user.role
+      );
+      
+      const meta = { 
+        total, 
+        page: pagination.page, 
+        pageSize: pagination.pageSize, 
+        totalPages: Math.ceil(total / pagination.pageSize) 
+      };
+      
       return sendSuccess(res, sequences, 'Sequences retrieved successfully', meta);
-    } catch (error) { next(error); }
+    } catch (error) { 
+      next(error); 
+    }
   }
 
   async getSequenceById(req, res, next) {

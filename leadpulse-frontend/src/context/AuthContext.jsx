@@ -61,24 +61,12 @@ export function AuthProvider({ children }) {
     setUser(data?.user ?? null);
     setRole(data?.role ?? data?.user?.role ?? null);
     setIsAuthenticated(true);
+    
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hasSession", "true"); 
+    }
+    
     return data;
-  }
-
-  /*
-    --------------------------------------------------------------------
-    DEMO LOGIN — frontend-only stand-in for `login()` above
-    --------------------------------------------------------------------
-    `login()` still calls the real POST /auth/login endpoint and is left
-    untouched for when the backend is ready. `loginDemo()` sets the same
-    state locally so the navbar, AuthGuard and dashboards have a user/role
-    to work with while there's nothing to authenticate against yet. Swap
-    the login page back to calling `login()` once real JWTs exist, then
-    this can be deleted.
-    */
-  function loginDemo({ name, email, role: demoRole }) {
-    setUser({ name, email });
-    setRole(demoRole);
-    setIsAuthenticated(true);
   }
 
   async function logout() {
@@ -99,7 +87,6 @@ export function AuthProvider({ children }) {
         isAuthenticated,
         isLoading,
         login,
-        loginDemo,
         logout
       }}
     >

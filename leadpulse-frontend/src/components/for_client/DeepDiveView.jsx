@@ -318,21 +318,6 @@ export default function DeepDiveView() {
   =============================================================================
   */
   const handleExportPDF = async () => {
-    try {
-      const blob = await exportConvertedLeads();
-      if (blob && blob.size > 0) {
-        const url = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `${selectedSequence ? selectedSequence.id : "all"}-converted-leads-report.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        return;
-      }
-    } catch (err) {
-      // Backend PDF service offline; fallback to browser print report
-    }
 
     // Export dedicated Converted Leads report
     printConvertedLeadsReport({

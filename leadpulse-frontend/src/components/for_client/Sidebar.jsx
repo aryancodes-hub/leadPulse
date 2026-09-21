@@ -1,9 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { LayoutDashboard, Compass } from "lucide-react";
+import { LayoutDashboard, Compass, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { clearAccessToken } from "@/api/api";
+import api from "@/api/api";
 
 export default function Sidebar({ activeTab, setActiveTab }) {
+  const router = useRouter();
+  const handleLogout = async () => {
+    try { await api.post("/auth/logout"); } 
+    catch(e) { console.error("Logout failed:", e); } 
+    finally {
+      clearAccessToken();
+      router.push("/");
+    }
+  };
   return (
     <aside className="client-sidebar">
       {/* Top LOGO Box */}
@@ -28,22 +40,16 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         </div>
 
         <nav className="client-nav-menu">
-          <button
-            type="button"
-            onClick={() => setActiveTab("dashboard")}
-            className={`client-nav-btn ${activeTab === "dashboard" ? "active" : ""}`}
-          >
+          <button type="button" onClick={() => setActiveTab("dashboard")}
+            className={`client-nav-btn ${activeTab === "dashboard" ? "active" : ""}`} >
             <div className="client-nav-btn-main">
               <LayoutDashboard size={18} className="client-nav-icon" />
               <span className="client-nav-title">DASHBOARD</span>
             </div>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("deepdive")}
-            className={`client-nav-btn ${activeTab === "deepdive" ? "active" : ""}`}
-          >
+          <button type="button" onClick={() => setActiveTab("deepdive")}
+            className={`client-nav-btn ${activeTab === "deepdive" ? "active" : ""}`} >
             <div className="client-nav-btn-main">
               <Compass size={18} className="client-nav-icon" />
               <span className="client-nav-title">DEEP DIVE</span>
@@ -53,6 +59,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       </div>
 
       <div className="client-sidebar-footer">
+        <button type="button" onClick={handleLogout}
+          className="client-nav-btn text-red-400 hover:text-red-300 hover:bg-red-900/20 mb-4" >
+          <div className="client-nav-btn-main">
+            <LogOut size={18} className="client-nav-icon" />
+            <span className="client-nav-title">SIGN OUT</span>
+          </div>
+        </button>
         <div className="client-pulse-indicator">
           <span className="pulse-beacon" />
           <span className="pulse-text">Lead Pulse &bull; Client Portal</span>
