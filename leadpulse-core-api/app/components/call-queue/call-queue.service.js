@@ -4,19 +4,29 @@ const { NotFoundError, BadRequestError, ForbiddenError } = require('../../lib/er
 
 class CallQueueService {
   async getNextLead(executiveId, campaignId) {
-    const nextLead = await CampaignLead.findOne({
-      where: { campaignId, assignedExecutiveId: executiveId, status: 'pending' },
+    // 1. Try to resume an already in-progress lead first
+    let nextLead = await CampaignLead.findOne({
+      where: { campaignId, assignedExecutiveId: executiveId, status: 'in_progress' },
       include: [{ 
         model: ClientLead, as: 'clientLead', 
         include: [{ model: MasterContact, as: 'masterContact' }] 
       }],
-      order: [['assignedAt', 'ASC']]
+      order: [['statusUpdatedAt', 'DESC']]
     });
-
-    if (!nextLead) return null;
-    
-    await nextLead.update({ status: 'in_progress', statusUpdatedAt: new Date() });
-    return nextLead;
+    if (!nextLead) {
+      nextLead = await CampaignLead.findOne({
+        where: { campaignId, assignedExecutiveId: executiveId, status: 'pending' },
+        include: [{ 
+          model: ClientLead, as: 'clientLead', 
+          include: [{ model: MasterContact, as: 'masterContact' }] 
+        }],
+        order: [['assignedAt', 'ASC']]
+      });
+      if (nextLead) {
+        await nextLead.update({ status: 'in_progress', statusUpdatedAt: new Date() });
+      }
+    }
+    return nextLead || null;
   }
 
   async skipLead(executiveId, campaignId, leadId) {
@@ -39,6 +49,7 @@ class CallQueueService {
     if (!execLink) throw new ForbiddenError("You are not actively assigned to this campaign.");
     
     return await sequelize.transaction(async (t) => {
+      // 1. This uses the exact ENUM from CallRemark ("New", "Contacted", "Qualified", "Converted", "Dead")
       const remark = await CallRemark.create({
         ...data,
         executiveUserId: executiveId,
@@ -56,18 +67,22 @@ class CallQueueService {
 
       const campaign = await Campaign.findByPk(campaignId, { transaction: t });
       
-      // Update only the local list membership to preserve historical conversion context
-      if (callOutcome === 'Converted') {
-        await LeadListMembership.update(
-          { status: 'Converted' },
-          { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
-        );
-      } else if (leadStatusUpdate) {
-        await LeadListMembership.update(
-          { status: leadStatusUpdate },
-          { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
-        );
+      // 2. We dynamically map `leadStatusUpdate` to the different ENUM for LeadListMembership!
+      let mappedMembershipStatus = 'Pending';
+      if (callOutcome === 'Converted' || leadStatusUpdate === 'Converted') {
+        mappedMembershipStatus = 'Converted';
+      } else if (leadStatusUpdate === 'Dead') {
+        mappedMembershipStatus = 'Dead';
+      } else if (callOutcome === 'Callback_Requested') {
+        mappedMembershipStatus = 'Callback';
+      } else if (['Wrong_Number', 'Not_Answered'].includes(callOutcome)) {
+        mappedMembershipStatus = 'Unreachable';
       }
+
+      await LeadListMembership.update(
+        { status: mappedMembershipStatus },
+        { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
+      );
 
       // --- Check if campaign is completely out of leads ---
       const remainingLeads = await CampaignLead.count({

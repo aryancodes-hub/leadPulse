@@ -8,17 +8,19 @@ import ExecutiveDashboardView from "@/components/for_executive/ExecutiveDashboar
 import ExecutiveQueueView from "@/components/for_executive/ExecutiveQueueView";
 import ExecutiveCallHistoryTab from "@/components/for_executive/ExecutiveCallHistoryTab";
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
-import { getExecutivePerformance } from "@/lib/dashboards"; // 🚀 Import real API
+import { getExecutivePerformance } from "@/lib/dashboards"; 
 
 export default function ExecutivePage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [activeCampaign, setActiveCampaign] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [executiveData, setExecutiveData] = useState(null);
+  const [perfData, setPerfData] = useState(null);
 
-  // 🚀 Fetch Real Data on Load!
-  useEffect(() => {
+  // 1. Reusable fetch function
+  const fetchPerformance = () => {
     getExecutivePerformance().then((data) => {
+      if (data) setPerfData(data);
       if (data && data.activeCampaign) {
         setActiveCampaign({
           ...data.activeCampaign,
@@ -33,26 +35,28 @@ export default function ExecutivePage() {
       console.error("Failed to fetch executive data", err);
       setIsLoading(false);
     });
-  }, []);
+  };
+
+  // 2. Fetch fresh data ON LOAD and EVERY TIME YOU SWITCH TABS!
+  useEffect(() => {
+    fetchPerformance();
+  }, [activeTab]);
 
   const isCall = activeCampaign?.campaign_type === "call" || activeCampaign?.campaign_type === "Cold Call Blitz";
-
   const handleStartCalling = () => setActiveTab("queue");
   const handleDialLead = () => setActiveTab("queue");
 
-    const getBreadcrumbs = () => {
-    // 🚀 NEW: Completely remove breadcrumbs for Email Campaigns
+  const getBreadcrumbs = () => {
     if (!isCall) {
       return [
         { label: "Dashboard", onClick: () => setActiveTab("dashboard") }
       ]; 
     }
 
-    // Call Campaign Breadcrumbs using REAL backend data
     if (activeTab === "queue") {
       return [
         { label: "Campaigns", onClick: () => setActiveTab("dashboard") },
-        { label: activeCampaign?.name || "Loading..." }, // Real Data!
+        { label: activeCampaign?.name || "Loading..." }, 
         { label: "Call Queue" },
       ];
     }
@@ -71,26 +75,21 @@ export default function ExecutivePage() {
 
   if (isLoading) return <div className="p-10 text-center text-slate-500 font-bold">Loading Executive Workspace...</div>;
 
-  // Render the rest of your component as normal starting at the return!
   return (
     <AuthGuard allowedRoles={["executive"]}>
       <div className="exec-spa-root flex h-screen w-full overflow-hidden bg-slate-50">
-        {/* Left Dark Navy Sidebar with conditional tabs */}
         <ExecutiveSidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           campaignType={activeCampaign?.campaign_type || "call"}
         />
 
-        {/* Main Content Area */}
         <div className="exec-main-wrapper flex-1 overflow-y-auto">
-          {/* Top Header Bar with Dev Campaign Switcher */}
           <ExecutiveHeader
             breadcrumbs={getBreadcrumbs()}
             executiveData={executiveData} 
           />
 
-          {/* Active View conditional on Campaign Type & Tab */}
           {activeTab === "dashboard" && (
             <ExecutiveDashboardView
               activeCampaign={activeCampaign}
@@ -99,15 +98,15 @@ export default function ExecutivePage() {
             />
           )}
 
-          {/* Call Campaign specific views */}
           {isCall && activeTab === "queue" && (
-            <ExecutiveQueueView activeCampaign={activeCampaign} />
+            <ExecutiveQueueView activeCampaign={activeCampaign} perfData={perfData} refreshData={fetchPerformance} />
           )}
 
           {isCall && activeTab === "callbacks" && (
             <ExecutiveCallHistoryTab
               viewMode="callbacks"
               onDialLead={handleDialLead}
+              callLogs={perfData?.callLogs || []}
             />
           )}
         </div>
@@ -115,4 +114,3 @@ export default function ExecutivePage() {
     </AuthGuard>
   );
 }
-

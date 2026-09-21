@@ -19,6 +19,7 @@ const createCallRemarkSchema = z.object({
     callDurationMinutes: z.number().int().optional(),
     notes: z.string().max(1000).optional(),
     followUpDate: z.string().datetime().optional(),
+    // Reverted back to match the CallRemark DB table perfectly:
     leadStatusUpdate: z.enum(["New", "Contacted", "Qualified", "Converted", "Dead"]).optional()
   })
 });
