@@ -157,7 +157,7 @@ class DashboardService {
     });
 
     const disqualifiedCount = await CallRemark.count({
-      where: { executiveUserId, callOutcome: "Not Interested" }
+      where: { executiveUserId, callOutcome: "Not_Interested" }
     });
 
     // 3. Approval & Financial Tracking (In Review vs Confirmed)
@@ -202,7 +202,7 @@ class DashboardService {
     const scheduledCallbacks = await CallRemark.findAll({
       where: {
         executiveUserId,
-        callOutcome: "Callback Requested"
+        callOutcome: "Callback_Requested"
       },
       include: [
         {

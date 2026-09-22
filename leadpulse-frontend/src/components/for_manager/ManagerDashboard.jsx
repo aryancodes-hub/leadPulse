@@ -5,7 +5,6 @@ import api from "@/api/api";
 
 export default function ManagerDashboard() {
   const [summary, setSummary] = useState({});
-
   const [pendingApprovals, setPendingApprovals] = useState([]);
 
   useEffect(() => {
@@ -18,12 +17,22 @@ export default function ManagerDashboard() {
           setSummary((prev) => ({
             ...prev,
             ...data,
-            conversionsByClient: data.conversionsByClient || prev.conversionsByClient,
+            conversionsByClient: data.conversionsByClient || prev.conversionsByClient || [],
             pendingApprovals: data.pendingApprovals || []
           }));
         }
       })
       .catch((err) => console.log("Using dashboard summary mock", err));
+
+    // SEE IF THIS IS NEEDED ELSE CHECK IF THIS IS BEING REDUNDANT 
+    api.get("/call-remarks/pending")
+      .then((res) => {
+        const approvalData = res.data?.data ?? res.data;
+        if (approvalData) {
+          setPendingApprovals(approvalData);
+        }
+      })
+      .catch((err) => console.log("No pending approvals found or backend error:", err));
   }, []);
 
   // Endpoint #41: PATCH /api/v1/call-remarks/:id/confirm
@@ -33,8 +42,12 @@ export default function ManagerDashboard() {
         conversionConfirmed: isConfirmed
       });
       setPendingApprovals((prev) => prev.filter((item) => item.id !== remarkId));
-    } catch (e) {
-      setPendingApprovals((prev) => prev.filter((item) => item.id !== remarkId));
+    } 
+    catch(e) {
+      // SEE THIS TOO...REFER THE ABOVE THING
+      console.error("Failed to review remark:", e);
+      alert("Failed to update status. Please try again.");
+      // setPendingApprovals((prev) => prev.filter((item) => item.id !== remarkId));
     }
   };
 

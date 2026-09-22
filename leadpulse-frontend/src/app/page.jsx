@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import Link from "next/link";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 import {
     register,
@@ -39,6 +40,7 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
+    const { executeRecaptcha } = useGoogleReCaptcha();
     const registerRef =
         useRef(null);
 
@@ -83,49 +85,46 @@ export default function HomePage() {
 
     async function handleSubmit(event) {
         event.preventDefault();
-
         setMessage("");
         setError("");
 
         if (
             form.password !==
             form.confirmPassword
-        ) {
-            setError(
-                "Passwords do not match."
-            );
-
+        ) 
+        {
+            setError( "Passwords do not match." );
             return;
         }
 
         try {
             setLoading(true);
+            if (!executeRecaptcha) {
+                setError("reCAPTCHA not loaded yet");
+                setLoading(false);
+                return;
+            }
+            const recaptchaToken = await executeRecaptcha("register");
 
             await register({
-                name: form.name,
+                fullName: form.name, 
                 email: form.email,
                 password: form.password,
+                confirmPassword: form.confirmPassword,
+                recaptchaToken: recaptchaToken
             });
 
-            setMessage(
-                "Campaign Manager account created successfully. You can now log in."
-            );
+            setMessage( "Campaign Manager account created successfully. You can now log in." );
 
-            setForm({
-                name: "",
-                email: "",
-                password: "",
-                confirmPassword: "",
-            });
-        } catch (err) {
-            setError(
-                err.response?.data
-                    ?.message ??
-                "Registration failed."
-            );
-        } finally {
-            setLoading(false);
-        }
+            // setForm({
+            //     name: "",
+            //     email: "",
+            //     password: "",
+            //     confirmPassword: "",
+            // });
+        } 
+        catch(err) { setError( err.response?.data ?.message ?? "Registration failed." ); }
+        finally { setLoading(false); }
     }
 
     return (

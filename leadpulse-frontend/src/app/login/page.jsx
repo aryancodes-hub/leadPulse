@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import api from "@/api/api";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
@@ -14,30 +16,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [recaptchaToken, setrecaptchaToken] = useState("adkkadf");
   const [showPassword, setShowPassword] = useState(false);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     try {
+      if (!executeRecaptcha) {
+                alert("reCAPTCHA not loaded yet");
+                return;
+            }
+      const recaptchaToken = await executeRecaptcha("login");
       const response = await login({ email, password, recaptchaToken });
-
       const userRole = response?.user?.role;
-
-      // 3. Route them to their specific dashboard based on their role (e.g., "/manager")
-      // (If you have dashes or underscores in roles like 'campaign_manager', you may need to format it to match your route, e.g. "/manager")
       let dashboardRoute = "/" + userRole;
       if (userRole === "campaign_manager") dashboardRoute = "/manager";
-
       router.push(dashboardRoute);
-    } catch (error) {
-      console.error("Login failed:", error.response?.data || error.message);
-      alert("Login failed. Check console for details.");
+    }
+    catch(error) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) { router.push("/unauthorized"); } 
+      else if (status === 404) { router.push("/not_found"); } 
+      else { router.push("/unauthorized"); }
     }
   };
 
   return (
     <main className="auth-page">
-      {/* 🌟 Aurora Background Layer with Floating Fluid Blobs */}
       <div className="aurora-bg">
         <div className="blob blob-1"></div>
         <div className="blob blob-2"></div>
@@ -63,11 +68,6 @@ export default function LoginPage() {
 
           <p>Sign in to your workspace.</p>
 
-          {/* <div className="demo-note">
-                        No backend yet — pick a role
-                        below to preview that dashboard.
-                    </div> */}
-
           <form onSubmit={handleSubmit} className="form">
             <label>
               Email
@@ -89,7 +89,7 @@ export default function LoginPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Password"
                   required
-                  style={{ width: "100%", paddingRight: "2.5rem" }} // Ensure text doesn't hide behind icon
+                  style={{ width: "100%", paddingRight: "2.5rem" }}
                 />
                 <button
                   type="button"

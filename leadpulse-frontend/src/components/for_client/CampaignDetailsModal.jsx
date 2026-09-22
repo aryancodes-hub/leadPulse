@@ -57,7 +57,7 @@ export default function CampaignDetailsModal({ show, onClose, campaign, sequence
             </div>
             <div className="client-metric-pill">
               <span className="client-pill-label">Conversion Rate</span>
-              <span className="client-pill-val text-indigo-600 font-bold">
+              <span className="client-pill-val text-purple-600 font-bold">
                 {conversionRate}%
               </span>
             </div>

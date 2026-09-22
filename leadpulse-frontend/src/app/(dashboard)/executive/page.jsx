@@ -8,7 +8,7 @@ import ExecutiveDashboardView from "@/components/for_executive/ExecutiveDashboar
 import ExecutiveQueueView from "@/components/for_executive/ExecutiveQueueView";
 import ExecutiveCallHistoryTab from "@/components/for_executive/ExecutiveCallHistoryTab";
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
-import { getExecutivePerformance } from "@/lib/dashboards"; // 🚀 Import real API
+import { getExecutivePerformance } from "@/lib/dashboards";
 
 export default function ExecutivePage() {
   const [activeTab, setActiveTab] = useState("dashboard");

@@ -327,7 +327,7 @@ export default function DeepDiveView() {
   };
 
   return (
-    <div className="client-deepdive-page">
+    <div className="client-deepdive-page flex flex-col gap-6">
       {/* Clean Breadcrumb Navigation */}
       <div className="client-breadcrumb-bar">
         <div className="client-breadcrumb-trail">

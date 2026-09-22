@@ -34,15 +34,14 @@ export default function AuthGuard({
             return;
         }
 
-        /*
-        ------------------------------------------------------------------
-        JWT ROLE CHECK — disabled, no backend yet
-        ------------------------------------------------------------------
-        With no backend, isAuthenticated/role never come from a real JWT,
-        so this redirect would bounce every visitor straight to /login (or
-        /unauthorized) before they ever saw a dashboard. Uncomment both
-        blocks below once login issues real tokens and AuthContext's
-        restoreSession is re-enabled.
+        // ------------------------------------------------------------------
+        // JWT ROLE CHECK — disabled, no backend yet
+        // ------------------------------------------------------------------
+        // With no backend, isAuthenticated/role never come from a real JWT,
+        // so this redirect would bounce every visitor straight to /login (or
+        // /unauthorized) before they ever saw a dashboard. Uncomment both
+        // blocks below once login issues real tokens and AuthContext's
+        // restoreSession is re-enabled.
 
         if (!isAuthenticated) {
             router.replace(
@@ -62,7 +61,6 @@ export default function AuthGuard({
                 "/unauthorized"
             );
         }
-        */
     }, [
         isLoading,
         isAuthenticated,
@@ -82,18 +80,12 @@ export default function AuthGuard({
         );
     }
 
-    /*
-    if (!isAuthenticated) {
-        return null;
-    }
+    if (!isAuthenticated) { return null; }
 
     if (
         allowedRoles &&
         !allowedRoles.includes(role)
-    ) {
-        return null;
-    }
-    */
-
+    ) 
+    { return null; }
     return children;
 }

@@ -5,14 +5,12 @@ import ScaleMetricCard from "@/components/for_client/ScaleMetricCard";
 import { getClientPortal } from "@/lib/dashboards";
 import { PhoneCall, Mail, Layers, CheckCircle2, PieChart, DollarSign } from "lucide-react";
 
-/*
-===============================================================================
-MOCK DATA FOR DEVELOPMENT
-===============================================================================
-*/
+
+// ===============================================================================
+// MOCK DATA FOR DEVELOPMENT
+// ===============================================================================
 const MOCK_CLIENT_STATS = {
-  totalConversion: "1,428",
-  totalCost: "$48,250",
+  totalConversion: "0",
   conversionRate: "15.4%",
   totalCalls: 4820,
   totalEmails: 24680,
@@ -28,11 +26,10 @@ export default function DashboardView() {
   useEffect(() => {
     let isMounted = true;
 
-    /*
-    ===========================================================================
-    BACKEND INTEGRATION POINT: GET /dashboards/client-portal (Axios)
-    ===========================================================================
-    */
+    // ===========================================================================
+    // BACKEND INTEGRATION POINT: GET /dashboards/client-portal (Axios)
+    // ===========================================================================
+
     async function fetchDashboardStats() {
       setLoading(true);
       try {
@@ -40,7 +37,6 @@ export default function DashboardView() {
         if (data && isMounted) {
           setStats({
             totalConversion: data.totalConversion ? data.totalConversion.toLocaleString() : MOCK_CLIENT_STATS.totalConversion,
-            totalCost: data.totalCost ? (typeof data.totalCost === "number" ? `$${data.totalCost.toLocaleString()}` : data.totalCost) : MOCK_CLIENT_STATS.totalCost,
             conversionRate: data.conversionRate ? `${data.conversionRate}%` : MOCK_CLIENT_STATS.conversionRate,
             totalCalls: data.totalCalls ?? MOCK_CLIENT_STATS.totalCalls,
             totalEmails: data.totalEmails ?? MOCK_CLIENT_STATS.totalEmails,
@@ -68,16 +64,8 @@ export default function DashboardView() {
   }, []);
 
   return (
-    <div className="client-dashboard-page">
-      {/* Top Header */}
-      <div className="client-main-header">
-        <div className="client-main-header-info">
-          <h2 className="client-page-title">Client Dashboard Overview</h2>
-          <p className="client-page-subtitle">
-            Performance analytics, engagement channels, and campaign metrics
-          </p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8">
+      {/* Removed old header */}
 
       {/* Top Row: 3 Scale-Up Version Metric Cards */}
       <div className="client-top-metrics-row">
@@ -85,7 +73,6 @@ export default function DashboardView() {
           title="Total Conversion"
           value={stats.totalConversion}
           subtitle="Total verified client conversions"
-          trend="+14.2% vs prior month"
           icon={PieChart}
         />
 
@@ -93,7 +80,6 @@ export default function DashboardView() {
           title="Conversion Rate"
           value={stats.conversionRate}
           subtitle="Aggregate lead-to-deal conversion"
-          trend="+2.1% benchmark delta"
           icon={CheckCircle2}
         />
       </div>
@@ -103,7 +89,7 @@ export default function DashboardView() {
         {/* Left Card: Total calls */}
         <div className="client-rounded-panel client-calls-card">
           <div className="client-panel-header">
-            <div className="client-panel-icon-wrap bg-blue-50 text-blue-600">
+            <div className="client-panel-icon-wrap bg-purple-50 text-purple-600">
               <PhoneCall size={22} />
             </div>
             <span className="client-panel-title">Total Calls</span>
@@ -133,7 +119,7 @@ export default function DashboardView() {
         {/* Middle Card: Total Emails */}
         <div className="client-rounded-panel client-emails-card">
           <div className="client-panel-header">
-            <div className="client-panel-icon-wrap bg-indigo-50 text-indigo-600">
+            <div className="client-panel-icon-wrap bg-purple-50 text-purple-600">
               <Mail size={22} />
             </div>
             <span className="client-panel-title">Total Emails</span>
@@ -150,7 +136,7 @@ export default function DashboardView() {
 
           <div className="client-panel-footer">
             <div className="client-call-breakdown">
-              <span className="client-stat-tag text-indigo-700 bg-indigo-50">
+              <span className="client-stat-tag text-purple-700 bg-purple-50">
                 48.2% Open rate
               </span>
               <span className="client-stat-tag text-emerald-700 bg-emerald-50">
@@ -187,7 +173,7 @@ export default function DashboardView() {
                 <span className="client-stacked-label">Completed Campaigns</span>
                 <span className="client-stacked-note">Finished execution</span>
               </div>
-              <span className="client-stacked-val text-indigo-600">
+              <span className="client-stacked-val text-purple-600">
                 {stats.completedCampaigns}
               </span>
             </div>

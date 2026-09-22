@@ -24,13 +24,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           <Image
             src="/logo.png"
             alt="Lead Pulse Logo"
-            width={28}
-            height={28}
+            width={22}
+            height={22}
             priority
             className="client-logo-img"
           />
-          <span className="client-logo-text"/>
         </div>
+        <span className="client-logo-text">LEAD PULSE</span>
       </div>
 
       {/* Side Nav Bar Section */}
@@ -42,18 +42,14 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         <nav className="client-nav-menu">
           <button type="button" onClick={() => setActiveTab("dashboard")}
             className={`client-nav-btn ${activeTab === "dashboard" ? "active" : ""}`} >
-            <div className="client-nav-btn-main">
-              <LayoutDashboard size={18} className="client-nav-icon" />
-              <span className="client-nav-title">DASHBOARD</span>
-            </div>
+            <LayoutDashboard size={18} className="client-nav-icon" />
+            <span className="client-nav-title">DASHBOARD</span>
           </button>
 
           <button type="button" onClick={() => setActiveTab("deepdive")}
             className={`client-nav-btn ${activeTab === "deepdive" ? "active" : ""}`} >
-            <div className="client-nav-btn-main">
-              <Compass size={18} className="client-nav-icon" />
-              <span className="client-nav-title">DEEP DIVE</span>
-            </div>
+            <Compass size={18} className="client-nav-icon" />
+            <span className="client-nav-title">DEEP DIVE</span>
           </button>
         </nav>
       </div>
@@ -61,10 +57,8 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       <div className="client-sidebar-footer">
         <button type="button" onClick={handleLogout}
           className="client-nav-btn text-red-400 hover:text-red-300 hover:bg-red-900/20 mb-4" >
-          <div className="client-nav-btn-main">
-            <LogOut size={18} className="client-nav-icon" />
-            <span className="client-nav-title">SIGN OUT</span>
-          </div>
+          <LogOut size={18} className="client-nav-icon" />
+          <span className="client-nav-title">SIGN OUT</span>
         </button>
         <div className="client-pulse-indicator">
           <span className="pulse-beacon" />
