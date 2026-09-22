@@ -16,18 +16,14 @@ const { ForbiddenError } = require("../../lib/error");
 
 class DashboardService {
   async getManagerSummary(managerId) {
-    // Managers can see metrics across campaigns they control.
-    // For MVP, aggregate everything they have access to.
     const activeCampaignsCount = await Campaign.count({
       where: { createdByUserId: managerId, status: "active" }
     });
 
-    // Total dials across their campaigns
     const totalDials = await CallRemark.count({
       include: [{ model: Campaign, as: "campaign", where: { createdByUserId: managerId } }]
     });
 
-    // Email open rate
     const engagements = await LeadEngagement.findAll({
       include: [
         { model: Campaign, as: "campaign", where: { createdByUserId: managerId }, attributes: [] }
@@ -46,13 +42,11 @@ class DashboardService {
     const opened = parseInt(engagements[0]?.totalOpened || 0, 10);
     const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(2) + "%" : "0%";
 
-    // Front-end requirements
     const activeClientsCount = await ClientManager.count({ where: { userId: managerId } });
     const activeExecutivesCount = await User.count({
       where: { managerId, role: "executive", isActive: true }
     });
 
-    // Group conversions by client in JS to avoid Sequelize grouping quirks
     const allConversions = await CallRemark.findAll({
       where: { callOutcome: "Converted" },
       include: [
@@ -75,6 +69,42 @@ class DashboardService {
       conversions: clientCounts[name]
     }));
 
+    const pendingData = await CallRemark.findAll({
+      where: {
+        callOutcome: "Converted",
+        confirmedByUserId: null
+      },
+      include: [
+        {
+          model: Campaign,
+          as: "campaign",
+          where: { createdByUserId: managerId },
+          include: [{ model: Client, as: "client" }]
+        },
+        { model: User, as: "executive" },
+        {
+          model: ClientLead,
+          as: "clientLead",
+          include: [{ model: MasterContact, as: "masterContact" }]
+        }
+      ],
+      order: [["createdAt", "ASC"]] 
+    });
+    // Map for the frontend table
+    const pendingApprovals = pendingData.map((r) => ({
+      id: r.id.substring(0, 8), // Short ID for clean UI
+      fullId: r.id, // Keep full ID for the API PATCH request
+      execName: r.executive?.fullName || "Unknown Exec",
+      leadName: r.clientLead?.masterContact
+        ? `${r.clientLead.masterContact.firstName} ${r.clientLead.masterContact.lastName}`
+        : "Unknown Lead",
+      clientName: r.campaign?.client?.name || "Unknown Client",
+      campaignName: r.campaign?.name || "Unknown Campaign",
+      notes: r.notes || "No notes provided",
+      duration: r.callDurationMinutes,
+      outcome: r.callOutcome
+    }));
+
     return {
       activeCampaigns: activeCampaignsCount,
       activeClients: activeClientsCount,
@@ -84,7 +114,8 @@ class DashboardService {
       activeExecutives: activeExecutivesCount,
       conversionsByClient,
       totalDials,
-      emailOpenRate: openRate
+      emailOpenRate: openRate,
+      pendingApprovals 
     };
   }
 
