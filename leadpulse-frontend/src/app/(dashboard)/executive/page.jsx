@@ -20,6 +20,9 @@ export default function ExecutivePage() {
   // 🚀 Fetch Real Data on Load!
    const fetchPerformance = () => {
     getExecutivePerformance().then((data) => {
+      if (data) {
+        setPerfData(data);
+      }
       if (data && data.activeCampaign) {
         setActiveCampaign({
           ...data.activeCampaign,

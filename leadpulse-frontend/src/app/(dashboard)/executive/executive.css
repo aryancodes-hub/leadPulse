@@ -229,7 +229,7 @@ body:has(.exec-spa-root) > header.navbar {
   color: #0f172a;
 }
 
-.exec-unread-dot {
+/* .exec-unread-dot {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -238,7 +238,7 @@ body:has(.exec-spa-root) > header.navbar {
   border-radius: 50%;
   background: #ef4444;
   box-shadow: 0 0 0 2px #ffffff;
-}
+} */
 
 /* .exec-user-profile {
   display: flex;

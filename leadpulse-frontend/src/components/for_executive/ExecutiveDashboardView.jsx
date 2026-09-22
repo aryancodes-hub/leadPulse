@@ -8,11 +8,7 @@ import ExecutiveSpeedometer from "@/components/for_executive/ExecutiveSpeedomete
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
 import { getExecutiveState, CALL_OUTCOMES } from "@/lib/executiveStore";
 
-export default function ExecutiveDashboardView({
-  activeCampaign,
-  onStartCalling,
-  onNavigateTab,
-}) {
+export default function ExecutiveDashboardView({ activeCampaign, onStartCalling, onNavigateTab }) {
   const [storeState, setStoreState] = useState(getExecutiveState());
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +30,7 @@ export default function ExecutiveDashboardView({
       try {
         const data = await getExecutivePerformance();
         if (data && isMounted) {
-          console.log(data)
+          console.log(data);
           setBackendPerf(data);
         }
       } catch (err) {
@@ -58,7 +54,8 @@ export default function ExecutiveDashboardView({
   }, [backendPerf, activityCounts]);
 
   const targetLeads = (backendPerf?.pendingQueueSize || 0) + (backendPerf?.totalCalls || 0);
-  const pendingQueue = backendPerf?.pendingQueueSize ?? Math.max(0, targetLeads - totalCallsCompleted);
+  const pendingQueue =
+    backendPerf?.pendingQueueSize ?? Math.max(0, targetLeads - totalCallsCompleted);
 
   // If email campaign, render dedicated email panel in dashboard viewMode
   if (isEmailCampaign) {
@@ -118,41 +115,181 @@ export default function ExecutiveDashboardView({
       />
 
       {/* Single Assigned Call Campaign Panel */}
-      <div className="exec-card-panel">
-        <div className="exec-card-header">
-          <div className="flex items-center gap-2 text-blue-600">
-            <Phone size={18} className="fill-current" />
-            <h3 className="exec-card-title text-blue-700">MY ASSIGNED CALL CAMPAIGN</h3>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 16,
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+          overflow: "hidden"
+        }}
+      >
+        {/* Gradient Header Strip */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #75787c 0%, #847fc4 55%, #878688 100%)",
+            padding: "16px 22px",
+            position: "relative",
+            overflow: "hidden"
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: -16,
+              right: -16,
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.07)",
+              pointerEvents: "none"
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              position: "relative",
+              gap: 12
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: "rgba(255,255,255,0.18)",
+                  border: "1.5px solid rgba(255,255,255,0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0
+                }}
+              >
+                <Phone size={18} color="white" />
+              </div>
+              <span
+                style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: "0.04em" }}
+              >
+                MY ASSIGNED CALL CAMPAIGN
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                padding: "3px 12px",
+                borderRadius: 20,
+                background: "rgba(16,185,129,0.3)",
+                border: "1px solid rgba(16,185,129,0.5)",
+                color: "#6ee7b7"
+              }}
+            >
+              ● Active Assignment
+            </span>
           </div>
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-            Active Assignment
-          </span>
         </div>
 
-        <div className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h4 className="text-base font-extrabold text-slate-900">{campaign.name}</h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-xl">
+        {/* Card Body */}
+        <div
+          style={{
+            padding: "20px 22px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 24,
+            flexWrap: "wrap"
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h4
+              style={{
+                margin: 0,
+                fontSize: 16,
+                fontWeight: 900,
+                color: "#0f172a",
+                letterSpacing: "-0.3px"
+              }}
+            >
+              {campaign.name}
+            </h4>
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontSize: 12,
+                color: "#64748b",
+                lineHeight: 1.5,
+                maxWidth: 480
+              }}
+            >
               {campaign.description || "B2B cold outreach sequence targeting technical leadership."}
             </p>
-            <div className="flex items-center gap-3 mt-2 text-xs font-semibold text-slate-600">
-              <span>Campaign ID: <strong className="font-mono text-slate-800">{campaign.id}</strong></span>
-              <span>&bull;</span>
-              <span>Queue Size: <strong className="text-slate-800">{targetLeads} Contacts</strong></span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginTop: 12,
+                flexWrap: "wrap"
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: "#f1f5f9",
+                  color: "#475569",
+                  padding: "3px 10px",
+                  borderRadius: 8,
+                  fontFamily: "monospace"
+                }}
+              >
+                ID: {campaign.id?.substring(0, 12)}...
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  padding: "3px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #bfdbfe"
+                }}
+              >
+                {targetLeads} Contacts in Queue
+              </span>
             </div>
           </div>
 
           <button
             type="button"
             onClick={() => onStartCalling(campaign)}
-            className="exec-btn exec-btn-blue text-sm py-2.5 px-6 shadow-md"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "13px 28px",
+              borderRadius: 12,
+              border: "none",
+              cursor: "pointer",
+              background: "linear-gradient(135deg, #0066ff 0%, #7c3aed 100%)",
+              color: "white",
+              fontWeight: 800,
+              fontSize: 13,
+              letterSpacing: "0.03em",
+              boxShadow: "0 4px 16px rgba(0,102,255,0.35)",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s"
+            }}
           >
-            <Play size={16} className="fill-current" />
-            <span>START CALLING QUEUE</span>
+            <Play size={15} fill="white" />
+            START CALLING QUEUE
           </button>
         </div>
       </div>
     </div>
   );
 }
-

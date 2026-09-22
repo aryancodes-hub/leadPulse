@@ -110,7 +110,10 @@ class DashboardService {
     const totalCalls = await CallRemark.count({ where: { executiveUserId } });
 
     const pendingQueueSize = await CampaignLead.count({
-     where: { assignedExecutiveId: executiveUserId, status: { [Op.in]: ['pending', 'in_progress'] }  } 
+      where: {
+        assignedExecutiveId: executiveUserId,
+        status: { [Op.in]: ["pending", "in_progress", "skipped"] }
+      }
     });
 
     // 2. Performance Metrics
@@ -150,29 +153,58 @@ class DashboardService {
     });
     const activeCampaign = assignments.length > 0 ? assignments[0].campaign : null;
 
-    const callLogsData = await CallRemark.findAll({
+    // 1. Fetch recent general call history
+    const recentCallLogs = await CallRemark.findAll({
       where: { executiveUserId },
-      include: [{ 
-        model: ClientLead, as: 'clientLead', 
-        include: [{ model: MasterContact, as: 'masterContact' }] 
-      }],
-      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: ClientLead,
+          as: "clientLead",
+          include: [{ model: MasterContact, as: "masterContact" }]
+        }
+      ],
+      order: [["createdAt", "DESC"]],
       limit: 100
     });
 
-    const callLogs = callLogsData.map(row => ({
+    // 2. 🚀 Fetch ALL Scheduled Callbacks (ignores the 100 limit so they never disappear)
+    const scheduledCallbacks = await CallRemark.findAll({
+      where: {
+        executiveUserId,
+        callOutcome: "Callback Requested"
+      },
+      include: [
+        {
+          model: ClientLead,
+          as: "clientLead",
+          include: [{ model: MasterContact, as: "masterContact" }]
+        }
+      ],
+      // Sort these by the follow-up date so the closest ones appear first!
+      order: [["followUpDate", "ASC"]]
+    });
+
+    // 3. Merge them and remove duplicates (in case a callback was made in the last 100 calls)
+    const uniqueLogsMap = new Map();
+    recentCallLogs.forEach((log) => uniqueLogsMap.set(log.id, log));
+    scheduledCallbacks.forEach((log) => uniqueLogsMap.set(log.id, log));
+    const mergedLogsData = Array.from(uniqueLogsMap.values());
+
+    // 4. Map to frontend requirements
+    const callLogs = mergedLogsData.map((row) => ({
       id: row.id,
-      leadName: row.clientLead?.masterContact ? `${row.clientLead.masterContact.firstName} ${row.clientLead.masterContact.lastName}` : 'Unknown Lead',
-      company: row.clientLead?.masterContact?.company || 'Unknown',
-      phone: row.clientLead?.masterContact?.phone || 'Unknown',
+      leadName: row.clientLead?.masterContact
+        ? `${row.clientLead.masterContact.firstName} ${row.clientLead.masterContact.lastName}`
+        : "Unknown Lead",
+      company: row.clientLead?.masterContact?.company || "Unknown",
+      phone: row.clientLead?.masterContact?.phone || "Unknown",
       outcome: row.callOutcome,
       duration: row.callDurationMinutes,
       timestamp: row.createdAt.toLocaleString(),
       followUpDate: row.followUpDate ? new Date(row.followUpDate).toLocaleDateString() : null,
       notes: row.notes,
-      status: row.leadStatusUpdate || 'Contacted'
+      status: row.leadStatusUpdate || "Contacted"
     }));
-
     // STRICT FRONTEND MAPPING: This perfectly matches the ExecutiveDashboardView.jsx expectations
     return {
       totalCalls,
@@ -189,7 +221,7 @@ class DashboardService {
             email: executiveInfo.email
           }
         : null,
-        callLogs
+      callLogs
     };
   }
 

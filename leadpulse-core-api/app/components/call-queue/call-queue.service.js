@@ -29,18 +29,27 @@ class CallQueueService {
     if (!nextLead) {
       nextLead = await CampaignLead.findOne({
         where: { campaignId, assignedExecutiveId: executiveId, status: "pending" },
-        include: [
-          {
-            model: ClientLead,
-            as: "clientLead",
-            include: [{ model: MasterContact, as: "masterContact" }]
-          }
-        ],
+        include: [{
+          model: ClientLead, as: "clientLead",
+          include: [{ model: MasterContact, as: "masterContact" }]
+        }],
         order: [["assignedAt", "ASC"]]
       });
-      if (nextLead) {
-        await nextLead.update({ status: "in_progress", statusUpdatedAt: new Date() });
-      }
+    }
+
+    if (!nextLead) {
+      nextLead = await CampaignLead.findOne({
+        where: { campaignId, assignedExecutiveId: executiveId, status: "skipped" },
+        include: [{
+          model: ClientLead, as: "clientLead",
+          include: [{ model: MasterContact, as: "masterContact" }]
+        }],
+        // Order by oldest skipped first
+        order: [["statusUpdatedAt", "ASC"]]
+      });
+    }
+    if (nextLead && nextLead.status !== "in_progress") {
+      await nextLead.update({ status: "in_progress", statusUpdatedAt: new Date() });
     }
     return nextLead || null;
   }
@@ -111,7 +120,7 @@ class CallQueueService {
       const remainingLeads = await CampaignLead.count({
         where: {
           campaignId,
-          status: { [Op.in]: ["pending", "in_progress"] }
+          status: { [Op.in]: ["pending", "in_progress", "skipped"] }
         },
         transaction: t
       });

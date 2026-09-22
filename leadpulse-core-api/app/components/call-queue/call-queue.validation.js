@@ -15,7 +15,7 @@ const createCallRemarkSchema = z.object({
   body: z.object({
     campaignId: z.string().uuid(),
     clientLeadId: z.string().uuid(),
-    callOutcome: z.enum(["Answered", "Not_Answered", "Busy", "Wrong_Number", "Left_Voicemail", "Callback_Requested", "Not_Interested", "Converted"]),
+    callOutcome: z.enum(["Answered", "Not Answered", "Busy", "Wrong Number", "Left Voicemail", "Callback Requested", "Not Interested", "Converted"]),
     callDurationMinutes: z.number().int().optional(),
     notes: z.string().max(1000).optional(),
     followUpDate: z.string().datetime().optional(),
