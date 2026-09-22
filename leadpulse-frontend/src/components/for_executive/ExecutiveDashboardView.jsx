@@ -152,19 +152,6 @@ export default function ExecutiveDashboardView({
           </button>
         </div>
       </div>
-
-      {/* Commission Tracking & Motivation Widget */}
-      <ExecutiveMotivationWidget
-        stats={{
-          confirmedEarnings: backendPerf?.confirmedEarnings ?? 1450,
-          inReviewCount: backendPerf?.inReviewCount ?? 5,
-          inReviewValue: backendPerf?.inReviewValue ?? 500,
-          disqualifiedCount: backendPerf?.disqualifiedCount ?? 1,
-          callsLoggedToday: totalCallsCompleted,
-          conversionsToday: backendPerf?.conversionsToday ?? activityCounts.Converted ?? 2,
-          pendingQueue: pendingQueue,
-        }}
-      />
     </div>
   );
 }

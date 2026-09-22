@@ -1,23 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Phone, CalendarClock, CheckCircle, Clock, ArrowUpRight, Search } from "lucide-react";
-import { getExecutiveState, VIBGYOR_OUTCOME_CONFIG } from "@/lib/executiveStore";
+import {  VIBGYOR_OUTCOME_CONFIG } from "@/lib/executiveStore";
 
-export default function ExecutiveCallHistoryTab({ viewMode = "history", onDialLead }) {
+export default function ExecutiveCallHistoryTab({ viewMode = "history", onDialLead, callLogs = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [callLogs, setCallLogs] = useState(() => {
-    return getExecutiveState().callLogs;
-  });
-
-  // Listen for newly added call remarks from the queue
-  useEffect(() => {
-    const handleUpdate = () => {
-      setCallLogs([...getExecutiveState().callLogs]);
-    };
-    window.addEventListener("exec-store-updated", handleUpdate);
-    return () => window.removeEventListener("exec-store-updated", handleUpdate);
-  }, []);
 
   const isCallbacksOnly = viewMode === "callbacks";
 
@@ -126,7 +114,7 @@ export default function ExecutiveCallHistoryTab({ viewMode = "history", onDialLe
                         );
                       })()}
                     </td>
-                    <td className="text-slate-700 font-mono text-xs">{log.duration}</td>
+                    <td className="text-slate-700 font-mono text-xs">{log.duration} mins</td>
                     <td className="text-xs font-semibold text-slate-800">
                       {isCallbacksOnly ? (
                         <span className="text-purple-700 font-mono bg-purple-50 px-2 py-0.5 rounded">

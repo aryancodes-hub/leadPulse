@@ -7,6 +7,8 @@ const {
   CampaignExecutive,
   User,
   Client,
+  ClientLead,
+  MasterContact,
   sequelize
 } = require("leadpulse-data-model");
 const { Op } = require("sequelize");
@@ -108,7 +110,7 @@ class DashboardService {
     const totalCalls = await CallRemark.count({ where: { executiveUserId } });
 
     const pendingQueueSize = await CampaignLead.count({
-      where: { assignedExecutiveId: executiveUserId, status: "pending" }
+     where: { assignedExecutiveId: executiveUserId, status: { [Op.in]: ['pending', 'in_progress'] }  } 
     });
 
     // 2. Performance Metrics
@@ -148,6 +150,29 @@ class DashboardService {
     });
     const activeCampaign = assignments.length > 0 ? assignments[0].campaign : null;
 
+    const callLogsData = await CallRemark.findAll({
+      where: { executiveUserId },
+      include: [{ 
+        model: ClientLead, as: 'clientLead', 
+        include: [{ model: MasterContact, as: 'masterContact' }] 
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: 100
+    });
+
+    const callLogs = callLogsData.map(row => ({
+      id: row.id,
+      leadName: row.clientLead?.masterContact ? `${row.clientLead.masterContact.firstName} ${row.clientLead.masterContact.lastName}` : 'Unknown Lead',
+      company: row.clientLead?.masterContact?.company || 'Unknown',
+      phone: row.clientLead?.masterContact?.phone || 'Unknown',
+      outcome: row.callOutcome,
+      duration: row.callDurationMinutes,
+      timestamp: row.createdAt.toLocaleString(),
+      followUpDate: row.followUpDate ? new Date(row.followUpDate).toLocaleDateString() : null,
+      notes: row.notes,
+      status: row.leadStatusUpdate || 'Contacted'
+    }));
+
     // STRICT FRONTEND MAPPING: This perfectly matches the ExecutiveDashboardView.jsx expectations
     return {
       totalCalls,
@@ -163,7 +188,8 @@ class DashboardService {
             fullName: executiveInfo.fullName,
             email: executiveInfo.email
           }
-        : null
+        : null,
+        callLogs
     };
   }
 

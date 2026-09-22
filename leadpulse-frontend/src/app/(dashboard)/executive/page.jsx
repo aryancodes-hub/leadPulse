@@ -15,9 +15,10 @@ export default function ExecutivePage() {
   const [activeCampaign, setActiveCampaign] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [executiveData, setExecutiveData] = useState(null);
+  const [perfData, setPerfData] = useState(null);
 
   // 🚀 Fetch Real Data on Load!
-  useEffect(() => {
+   const fetchPerformance = () => {
     getExecutivePerformance().then((data) => {
       if (data && data.activeCampaign) {
         setActiveCampaign({
@@ -33,7 +34,11 @@ export default function ExecutivePage() {
       console.error("Failed to fetch executive data", err);
       setIsLoading(false);
     });
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchPerformance();
+  }, [activeTab]);
 
   const isCall = activeCampaign?.campaign_type === "call" || activeCampaign?.campaign_type === "Cold Call Blitz";
 
@@ -41,18 +46,16 @@ export default function ExecutivePage() {
   const handleDialLead = () => setActiveTab("queue");
 
     const getBreadcrumbs = () => {
-    // 🚀 NEW: Completely remove breadcrumbs for Email Campaigns
     if (!isCall) {
       return [
         { label: "Dashboard", onClick: () => setActiveTab("dashboard") }
       ]; 
     }
 
-    // Call Campaign Breadcrumbs using REAL backend data
     if (activeTab === "queue") {
       return [
         { label: "Campaigns", onClick: () => setActiveTab("dashboard") },
-        { label: activeCampaign?.name || "Loading..." }, // Real Data!
+        { label: activeCampaign?.name || "Loading..." }, 
         { label: "Call Queue" },
       ];
     }
@@ -101,13 +104,14 @@ export default function ExecutivePage() {
 
           {/* Call Campaign specific views */}
           {isCall && activeTab === "queue" && (
-            <ExecutiveQueueView activeCampaign={activeCampaign} />
+             <ExecutiveQueueView activeCampaign={activeCampaign} perfData={perfData} refreshData={fetchPerformance} />
           )}
 
           {isCall && activeTab === "callbacks" && (
             <ExecutiveCallHistoryTab
               viewMode="callbacks"
               onDialLead={handleDialLead}
+              callLogs={perfData?.callLogs || []}
             />
           )}
         </div>
