@@ -122,7 +122,7 @@ class AuthService {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     await sendEmail({
-      to: email,
+      to: user.email,
       subject: 'LeadPulse Password Reset',
       text: `You requested a password reset. Click here: ${resetUrl} (Link expires in 60 minutes)`,
       html: `<p>You requested a password reset.</p><a href="${resetUrl}">Click here to reset your password</a><p>This link expires in 60 minutes.</p>`

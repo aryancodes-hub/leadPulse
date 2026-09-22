@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Megaphone, Phone, Hourglass, Play, DollarSign, CheckCircle2 } from "lucide-react";
 import { getExecutivePerformance } from "@/lib/dashboards";
-import ExecutiveMotivationWidget from "@/components/for_executive/ExecutiveMotivationWidget";
 import ExecutiveSpeedometer from "@/components/for_executive/ExecutiveSpeedometer";
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
 import { getExecutiveState, CALL_OUTCOMES } from "@/lib/executiveStore";
@@ -11,15 +10,6 @@ import { getExecutiveState, CALL_OUTCOMES } from "@/lib/executiveStore";
 export default function ExecutiveDashboardView({ activeCampaign, onStartCalling, onNavigateTab }) {
   const [storeState, setStoreState] = useState(getExecutiveState());
   const [loading, setLoading] = useState(false);
-
-  // Listen for local store updates (e.g. from queue submits)
-  useEffect(() => {
-    const handleUpdate = () => {
-      setStoreState(getExecutiveState());
-    };
-    window.addEventListener("exec-store-updated", handleUpdate);
-    return () => window.removeEventListener("exec-store-updated", handleUpdate);
-  }, []);
 
   const [backendPerf, setBackendPerf] = useState(null);
 
@@ -30,7 +20,6 @@ export default function ExecutiveDashboardView({ activeCampaign, onStartCalling,
       try {
         const data = await getExecutivePerformance();
         if (data && isMounted) {
-          console.log(data);
           setBackendPerf(data);
         }
       } catch (err) {
@@ -47,10 +36,33 @@ export default function ExecutiveDashboardView({ activeCampaign, onStartCalling,
   const isEmailCampaign = campaign?.campaign_type === "email";
 
   // Calculate total completed calls from activity counts or backend
-  const activityCounts = storeState.activityCounts || {};
+  // 🚀 Dynamically tally the outcomes from the backend callLogs array!
+  // 1. Ultra-safe Activity Counts
+  const activityCounts = useMemo(() => {
+    const counts = {};
+
+    if (backendPerf && Array.isArray(backendPerf.callLogs)) {
+      backendPerf.callLogs.forEach((log) => {
+        if (!log || !log.outcome) return;
+
+        const key = log.outcome;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      return counts; // Make sure this return is here!
+    }
+
+    // Safe fallback using optional chaining
+    return storeState?.activityCounts || {};
+  }, [backendPerf, storeState]);
+
+  // 2. Ultra-safe Total Calls Completed
   const totalCallsCompleted = useMemo(() => {
     if (backendPerf?.totalCalls != null) return backendPerf.totalCalls;
-    return CALL_OUTCOMES.reduce((sum, key) => sum + (activityCounts[key] || 0), 0);
+
+    // Safety net: force it to an empty object if activityCounts is somehow still undefined
+    const safeCounts = activityCounts || {};
+
+    return CALL_OUTCOMES.reduce((sum, key) => sum + (safeCounts[key] || 0), 0);
   }, [backendPerf, activityCounts]);
 
   const targetLeads = (backendPerf?.pendingQueueSize || 0) + (backendPerf?.totalCalls || 0);

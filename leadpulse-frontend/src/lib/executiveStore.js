@@ -2,12 +2,12 @@
 
 export const CALL_OUTCOMES = [
   "Answered",
-  "Not_Answered",
+  "Not Answered",
   "Busy",
-  "Wrong_Number",
-  "Left_Voicemail",
-  "Callback_Requested",
-  "Not_Interested",
+  "Wrong Number",
+  "Left Voicemail",
+  "Callback Requested",
+  "Not Interested",
   "Converted",
 ];
 
@@ -27,7 +27,7 @@ export const VIBGYOR_OUTCOME_CONFIG = {
     textColor: "#6D28D9",
     vibgyor: "V",
   },
-  Callback_Requested: {
+  "Callback Requested": {
     label: "Callback Requested",
     color: "#4F46E5", // Indigo
     bg: "rgba(79, 70, 229, 0.12)",
@@ -43,7 +43,7 @@ export const VIBGYOR_OUTCOME_CONFIG = {
     textColor: "#0369A1",
     vibgyor: "B",
   },
-  Left_Voicemail: {
+  "Left Voicemail": {
     label: "Left Voicemail",
     color: "#10B981", // Green
     bg: "rgba(16, 185, 129, 0.12)",
@@ -59,7 +59,7 @@ export const VIBGYOR_OUTCOME_CONFIG = {
     textColor: "#B45309",
     vibgyor: "Y",
   },
-  Not_Answered: {
+  "Not Answered": {
     label: "Not Answered",
     color: "#F97316", // Orange
     bg: "rgba(249, 115, 22, 0.12)",
@@ -67,7 +67,7 @@ export const VIBGYOR_OUTCOME_CONFIG = {
     textColor: "#C2410C",
     vibgyor: "O",
   },
-  Wrong_Number: {
+  "Wrong Number": {
     label: "Wrong Number",
     color: "#EF4444", // Red
     bg: "rgba(239, 68, 68, 0.12)",
@@ -75,7 +75,7 @@ export const VIBGYOR_OUTCOME_CONFIG = {
     textColor: "#B91C1C",
     vibgyor: "R",
   },
-  Not_Interested: {
+  "Not Interested": {
     label: "Not Interested",
     color: "#BE123C", // Crimson / Deep Red
     bg: "rgba(190, 18, 60, 0.12)",

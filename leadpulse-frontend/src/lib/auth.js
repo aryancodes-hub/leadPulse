@@ -92,26 +92,16 @@ export async function refreshToken() {
 }
 
 export async function forgotPassword(email) {
-    const response = await api.post(
-            "/auth/forgot-password",
-            { email }
-        );
-
+    const response = await api.post("/auth/forgot-password", { email });
     return getData(response);
 }
 
-export async function resetPassword(
-    token,
-    password
-) {
-    const response = await api.post(
-            "/auth/reset-password",
-            {
-                token,
-                password,
-            }
-        );
-
+export async function resetPassword(email, token, newPassword) {
+    const response = await api.post("/auth/reset-password", {
+        email,
+        token,
+        newPassword,
+    });
     return getData(response);
 }
 
