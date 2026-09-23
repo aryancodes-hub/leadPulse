@@ -8,10 +8,10 @@ const logger = require('./logger');
  */
 async function verifyRecaptcha(token, action) {
   // Explicitly bypass reCAPTCHA in development/testing to make API testing easy
-  if (process.env.NODE_ENV !== 'production') {
-    logger.warn('Skipping reCAPTCHA verification in non-production environment.');
-    return true;
-  }
+  // if (process.env.NODE_ENV !== 'production') {
+  //   logger.warn('Skipping reCAPTCHA verification in non-production environment.');
+  //   return true;
+  // }
 
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   

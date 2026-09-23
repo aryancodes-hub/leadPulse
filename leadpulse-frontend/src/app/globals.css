@@ -2,6 +2,8 @@
 /* Lead Pulse — design tokens                                         */
 /* ================================================================== */
 
+@import "tailwindcss";
+
 :root {
     --ink: #14151f;
     --ink-soft: #454a58;

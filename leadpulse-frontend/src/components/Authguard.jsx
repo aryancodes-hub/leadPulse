@@ -82,7 +82,7 @@ export default function AuthGuard({
         );
     }
 
-    /*
+    
     if (!isAuthenticated) {
         return null;
     }
@@ -93,7 +93,7 @@ export default function AuthGuard({
     ) {
         return null;
     }
-    */
+    
 
     return children;
 }

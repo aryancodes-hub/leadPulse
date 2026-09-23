@@ -18,7 +18,7 @@ export default function ManagerDashboard() {
           setSummary((prev) => ({
             ...prev,
             ...data,
-            conversionsByClient: data.conversionsByClient || prev.conversionsByClient,
+            conversionsByClient: data.conversionsByClient || prev.conversionsByClient || [],
             pendingApprovals: data.pendingApprovals || []
           }));
         }

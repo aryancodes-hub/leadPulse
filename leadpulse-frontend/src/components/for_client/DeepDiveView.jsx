@@ -235,7 +235,7 @@ function printConvertedLeadsReport({ sequence, leads = [] }) {
 }
 
 export default function DeepDiveView() {
-  const [sequences, setSequences] = useState(INITIAL_MOCK_SEQUENCES);
+  const [sequences, setSequences] = useState();
   const [selectedSequence, setSelectedSequence] = useState(null);
   const [viewingCampaign, setViewingCampaign] = useState(null);
   const [showAllLeadsModal, setShowAllLeadsModal] = useState(false);
@@ -260,7 +260,7 @@ export default function DeepDiveView() {
         }
       } catch (err) {
         if (isMounted) {
-          setSequences(INITIAL_MOCK_SEQUENCES);
+          setSequences();
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -288,7 +288,7 @@ export default function DeepDiveView() {
 
     async function fetchSequenceDetailsAndLeads() {
       try {
-        const res = await getSequence(selectedSequence.id);
+        // const res = await getSequence(selectedSequence.id);
         if (res?.leads && Array.isArray(res.leads) && isMounted) {
           setLeadsList(res.leads);
           return;
@@ -298,7 +298,7 @@ export default function DeepDiveView() {
       }
 
       if (isMounted) {
-        setLeadsList(generateMockLeadsForSequence(selectedSequence));
+        // setLeadsList(generateMockLeadsForSequence(selectedSequence));
       }
     }
 
@@ -327,7 +327,7 @@ export default function DeepDiveView() {
   };
 
   return (
-    <div className="client-deepdive-page">
+    <div className="client-deepdive-page flex flex-col gap-6">
       {/* Clean Breadcrumb Navigation */}
       <div className="client-breadcrumb-bar">
         <div className="client-breadcrumb-trail">

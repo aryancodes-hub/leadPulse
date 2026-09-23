@@ -19,6 +19,7 @@
     "cookie-parser": "^1.4.7",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.9",
+    "react-google-recaptcha-v3": "^1.11.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   }

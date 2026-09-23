@@ -5,7 +5,7 @@ import { X, Mail, PhoneCall, CheckCircle2 } from "lucide-react";
 export default function CampaignDetailsModal({ show, onClose, campaign, sequenceName = "" }) {
   if (!show || !campaign) return null;
 
-  const totalDelivered = campaign.totalDelivered || (campaign.convertedLeads ? Math.round(campaign.convertedLeads * 5.4) : 100);
+  const totalDelivered = campaign.totalDelivered
   const conversionRate = totalDelivered > 0 ? ((campaign.convertedLeads / totalDelivered) * 100).toFixed(1) : "0.0";
 
   return (
