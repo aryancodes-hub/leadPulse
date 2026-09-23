@@ -1,530 +1,412 @@
 [
-    {
-        "method": "post",
-        "route": "/api/v1/auth/register",
-        "controller": "auth",
-        "action": "register",
-        "middlewareNameList": [
-            "validateJsonContentType",
-            "validateAuthRegister"
-        ]
-    },
-    {
-        "method": "post",
-        "route": "/api/v1/auth/login",
-        "controller": "auth",
-        "action": "login",
-        "middlewareNameList": [
-            "validateJsonContentType",
-            "validateAuthLogin"
-        ]
-    },
-    {
-        "method": "post",
-        "route": "/api/v1/auth/refresh-token",
-        "controller": "auth",
-        "action": "refreshToken",
-        "middlewareNameList": []
-    },
-    {
-        "method": "post",
-        "route": "/api/v1/auth/logout",
-        "controller": "auth",
-        "action": "logout",
-        "middlewareNameList": [
-            "authenticate"
-        ]
-    },
-    {
-        "method": "post",
-        "route": "/api/v1/auth/forgot-password",
-        "controller": "auth",
-        "action": "forgotPassword",
-        "middlewareNameList": [
-            "validateJsonContentType",
-            "validateAuthForgotPassword"
-        ]
-    },
-    {
-        "method": "post",
-        "route": "/api/v1/auth/reset-password",
-        "controller": "auth",
-        "action": "resetPassword",
-        "middlewareNameList": [
-            "validateJsonContentType",
-            "validateAuthResetPassword"
-        ]
-    },
-    {
-        "method": "post",
-        "route": "/api/v1/clients",
-        "controller": "client",
-        "action": "createClient",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateClientCreate"
-        ]
-    },
-    {
-        "method": "get",
-        "route": "/api/v1/clients",
-        "controller": "client",
-        "action": "getClients",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validatePaginationQuery"
-        ]
-    },
-    {
-        "method": "get",
-        "route": "/api/v1/clients/:id",
-        "controller": "client",
-        "action": "getClientById",
-        "middlewareNameList": [
-            "authenticate",
-            "validateClientParams"
-        ]
-    },
-    {
-        "method": "patch",
-        "route": "/api/v1/clients/:id",
-        "controller": "client",
-        "action": "updateClient",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateClientUpdate"
-        ]
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateUserCreate"
-        ],
-        "controller": "user",
-        "action": "createUser",
-        "route": "/api/v1/users"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validatePaginationQuery"
-        ],
-        "controller": "user",
-        "action": "getUsers",
-        "route": "/api/v1/users"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateUserParams"
-        ],
-        "controller": "user",
-        "action": "getUserById",
-        "route": "/api/v1/users/:id"
-    },
-    {
-        "method": "patch",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateUserUpdate"
-        ],
-        "controller": "user",
-        "action": "updateUser",
-        "route": "/api/v1/users/:id"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "uploadCsv",
-            "validateLeadListUpload"
-        ],
-        "controller": "lead-list",
-        "action": "uploadList",
-        "route": "/api/v1/lead-lists/upload"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateImportStatusParams"
-        ],
-        "controller": "lead-list",
-        "action": "getImportStatus",
-        "route": "/api/v1/lead-imports/:jobId/status"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validatePaginationQuery"
-        ],
-        "controller": "lead-list",
-        "action": "getLeadLists",
-        "route": "/api/v1/lead-lists"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateLeadListParams"
-        ],
-        "controller": "lead-list",
-        "action": "getLeadListById",
-        "route": "/api/v1/lead-lists/:id"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validatePaginationQuery",
-            "validateLeadListParams"
-        ],
-        "controller": "lead-list",
-        "action": "getListMembers",
-        "route": "/api/v1/lead-lists/:id/members"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validatePaginationQuery"
-        ],
-        "controller": "client-lead",
-        "action": "getClientLeads",
-        "route": "/api/v1/client-leads"
-    },
-    {
-        "method": "patch",
-        "middlewareNameList": [
-            "validateJsonContentType",
-            "validateComplianceUpdate"
-        ],
-        "controller": "client-lead",
-        "action": "updateCompliance",
-        "route": "/api/v1/client-leads/:id/compliance"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validatePaginationQuery"
-        ],
-        "controller": "sequence",
-        "action": "getSequences",
-        "route": "/api/v1/sequences"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "validateJsonContentType",
-            "validateSequenceCreate"
-        ],
-        "controller": "sequence",
-        "action": "createSequence",
-        "route": "/api/v1/sequences"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateSequenceParams"
-        ],
-        "controller": "sequence",
-        "action": "getSequenceById",
-        "route": "/api/v1/sequences/:id"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validatePaginationQuery"
-        ],
-        "controller": "campaign",
-        "action": "getCampaigns",
-        "route": "/api/v1/campaigns"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateCampaignCreate"
-        ],
-        "controller": "campaign",
-        "action": "createCampaign",
-        "route": "/api/v1/campaigns"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateCampaignParams"
-        ],
-        "controller": "campaign",
-        "action": "getCampaignById",
-        "route": "/api/v1/campaigns/:id"
-    },
-        {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate"
-        ],
-        "controller": "campaign",
-        "action": "getEmailDashboard",
-        "route": "/api/v1/campaigns/:id/email-dashboard"
-    },
-    {
-        "method": "patch",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateCampaignUpdate"
-        ],
-        "controller": "campaign",
-        "action": "updateCampaign",
-        "route": "/api/v1/campaigns/:id"
-    },
-    {
-        "method": "delete",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateCampaignParams"
-        ],
-        "controller": "campaign",
-        "action": "deleteCampaign",
-        "route": "/api/v1/campaigns/:id"
-    },
-    {
-        "method": "patch",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateCampaignStatus"
-        ],
-        "controller": "campaign",
-        "action": "updateStatus",
-        "route": "/api/v1/campaigns/:id/status"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateCampaignParams"
-        ],
-        "controller": "campaign",
-        "action": "approveCampaign",
-        "route": "/api/v1/campaigns/:id/approve"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateCampaignParams"
-        ],
-        "controller": "team-execution",
-        "action": "getExecutives",
-        "route": "/api/v1/campaigns/:id/executives"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateAddExecutive"
-        ],
-        "controller": "team-execution",
-        "action": "addExecutive",
-        "route": "/api/v1/campaigns/:id/executives"
-    },
-    {
-        "method": "delete",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateRemoveExecutive"
-        ],
-        "controller": "team-execution",
-        "action": "removeExecutive",
-        "route": "/api/v1/campaigns/:id/executives/:execId"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateAssignLeads"
-        ],
-        "controller": "team-execution",
-        "action": "assignLeads",
-        "route": "/api/v1/campaigns/:id/assign-leads"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireExecutive",
-            "validateQueueParams"
-        ],
-        "controller": "call-queue",
-        "action": "getNextLead",
-        "route": "/api/v1/campaigns/:id/queue/next"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireExecutive",
-            "validateSkipLead"
-        ],
-        "controller": "call-queue",
-        "action": "skipLead",
-        "route": "/api/v1/campaigns/:id/queue/:leadId/skip"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireExecutive",
-            "validateJsonContentType",
-            "validateCreateCallRemark"
-        ],
-        "controller": "call-queue",
-        "action": "createCallRemark",
-        "route": "/api/v1/call-remarks"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validatePaginationQuery"
-        ],
-        "controller": "call-queue",
-        "action": "getCallRemarks",
-        "route": "/api/v1/campaigns/:id/call-remarks"
-    },
-    {
-        "method": "patch",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJsonContentType",
-            "validateConfirmRemark"
-        ],
-        "controller": "call-queue",
-        "action": "confirmConversion",
-        "route": "/api/v1/call-remarks/:id/confirm"
-    },
-    {
-        "method": "post",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateDispatchEmail"
-        ],
-        "controller": "email-operations",
-        "action": "dispatchEmail",
-        "route": "/api/v1/campaigns/:id/dispatch-email"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager",
-            "validateJobStatus"
-        ],
-        "controller": "email-operations",
-        "action": "getJobStatus",
-        "route": "/api/v1/email-jobs/:jobId/status"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "requireCampaignManager"
-        ],
-        "controller": "dashboard",
-        "action": "getManagerSummary",
-        "route": "/api/v1/dashboards/manager-summary"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateExecPerformance"
-        ],
-        "controller": "dashboard",
-        "action": "getExecPerformance",
-        "route": "/api/v1/dashboards/exec-performance"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateClientPortal"
-        ],
-        "controller": "dashboard",
-        "action": "getClientPortalSummary",
-        "route": "/api/v1/dashboards/client-portal"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateCampaignSummary"
-        ],
-        "controller": "report",
-        "action": "getCampaignSummary",
-        "route": "/api/v1/reports/campaign-summary/:id"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateExport"
-        ],
-        "controller": "report",
-        "action": "exportEngagements",
-        "route": "/api/v1/reports/export/engagements"
-    },
-    {
-        "method": "get",
-        "middlewareNameList": [
-            "authenticate",
-            "validateExport"
-        ],
-        "controller": "report",
-        "action": "exportConverted",
-        "route": "/api/v1/reports/export/converted"
-    }
+  {
+    "method": "post",
+    "route": "/api/v1/auth/register",
+    "controller": "auth",
+    "action": "register",
+    "middlewareNameList": ["validateJsonContentType", "validateAuthRegister"]
+  },
+  {
+    "method": "post",
+    "route": "/api/v1/auth/login",
+    "controller": "auth",
+    "action": "login",
+    "middlewareNameList": ["validateJsonContentType", "validateAuthLogin"]
+  },
+  {
+    "method": "post",
+    "route": "/api/v1/auth/refresh-token",
+    "controller": "auth",
+    "action": "refreshToken",
+    "middlewareNameList": []
+  },
+  {
+    "method": "post",
+    "route": "/api/v1/auth/logout",
+    "controller": "auth",
+    "action": "logout",
+    "middlewareNameList": ["authenticate"]
+  },
+  {
+    "method": "post",
+    "route": "/api/v1/auth/forgot-password",
+    "controller": "auth",
+    "action": "forgotPassword",
+    "middlewareNameList": ["validateJsonContentType", "validateAuthForgotPassword"]
+  },
+  {
+    "method": "post",
+    "route": "/api/v1/auth/reset-password",
+    "controller": "auth",
+    "action": "resetPassword",
+    "middlewareNameList": ["validateJsonContentType", "validateAuthResetPassword"]
+  },
+  {
+    "method": "post",
+    "route": "/api/v1/clients",
+    "controller": "client",
+    "action": "createClient",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateClientCreate"
+    ]
+  },
+  {
+    "method": "get",
+    "route": "/api/v1/clients",
+    "controller": "client",
+    "action": "getClients",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validatePaginationQuery"]
+  },
+  {
+    "method": "get",
+    "route": "/api/v1/clients/:id",
+    "controller": "client",
+    "action": "getClientById",
+    "middlewareNameList": ["authenticate", "validateClientParams"]
+  },
+  {
+    "method": "patch",
+    "route": "/api/v1/clients/:id",
+    "controller": "client",
+    "action": "updateClient",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateClientUpdate"
+    ]
+  },
+  {
+    "method": "post",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateUserCreate"
+    ],
+    "controller": "user",
+    "action": "createUser",
+    "route": "/api/v1/users"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validatePaginationQuery"],
+    "controller": "user",
+    "action": "getUsers",
+    "route": "/api/v1/users"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateUserParams"],
+    "controller": "user",
+    "action": "getUserById",
+    "route": "/api/v1/users/:id"
+  },
+  {
+    "method": "patch",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateUserUpdate"
+    ],
+    "controller": "user",
+    "action": "updateUser",
+    "route": "/api/v1/users/:id"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "uploadCsv",
+      "validateLeadListUpload"
+    ],
+    "controller": "lead-list",
+    "action": "uploadList",
+    "route": "/api/v1/lead-lists/upload"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateImportStatusParams"],
+    "controller": "lead-list",
+    "action": "getImportStatus",
+    "route": "/api/v1/lead-imports/:jobId/status"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validatePaginationQuery"],
+    "controller": "lead-list",
+    "action": "getLeadLists",
+    "route": "/api/v1/lead-lists"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateLeadListParams"],
+    "controller": "lead-list",
+    "action": "getLeadListById",
+    "route": "/api/v1/lead-lists/:id"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validatePaginationQuery", "validateLeadListParams"],
+    "controller": "lead-list",
+    "action": "getListMembers",
+    "route": "/api/v1/lead-lists/:id/members"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validatePaginationQuery"],
+    "controller": "client-lead",
+    "action": "getClientLeads",
+    "route": "/api/v1/client-leads"
+  },
+  {
+    "method": "patch",
+    "middlewareNameList": ["validateJsonContentType", "validateComplianceUpdate"],
+    "controller": "client-lead",
+    "action": "updateCompliance",
+    "route": "/api/v1/client-leads/:id/compliance"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validatePaginationQuery"],
+    "controller": "sequence",
+    "action": "getSequences",
+    "route": "/api/v1/sequences"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": ["authenticate", "validateJsonContentType", "validateSequenceCreate"],
+    "controller": "sequence",
+    "action": "createSequence",
+    "route": "/api/v1/sequences"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateSequenceParams"],
+    "controller": "sequence",
+    "action": "getSequenceById",
+    "route": "/api/v1/sequences/:id"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateSequenceParams"],
+    "controller": "sequence",
+    "action": "getConvertedLeads",
+    "route": "/api/v1/sequences/:id/converted-leads"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validatePaginationQuery"],
+    "controller": "campaign",
+    "action": "getCampaigns",
+    "route": "/api/v1/campaigns"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateCampaignCreate"
+    ],
+    "controller": "campaign",
+    "action": "createCampaign",
+    "route": "/api/v1/campaigns"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateCampaignParams"],
+    "controller": "campaign",
+    "action": "getCampaignById",
+    "route": "/api/v1/campaigns/:id"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate"],
+    "controller": "campaign",
+    "action": "getEmailDashboard",
+    "route": "/api/v1/campaigns/:id/email-dashboard"
+  },
+  {
+    "method": "patch",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateCampaignUpdate"
+    ],
+    "controller": "campaign",
+    "action": "updateCampaign",
+    "route": "/api/v1/campaigns/:id"
+  },
+  {
+    "method": "delete",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateCampaignParams"],
+    "controller": "campaign",
+    "action": "deleteCampaign",
+    "route": "/api/v1/campaigns/:id"
+  },
+  {
+    "method": "patch",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateCampaignStatus"
+    ],
+    "controller": "campaign",
+    "action": "updateStatus",
+    "route": "/api/v1/campaigns/:id/status"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateCampaignParams"],
+    "controller": "campaign",
+    "action": "approveCampaign",
+    "route": "/api/v1/campaigns/:id/approve"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateCampaignParams"],
+    "controller": "team-execution",
+    "action": "getExecutives",
+    "route": "/api/v1/campaigns/:id/executives"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateAddExecutive"
+    ],
+    "controller": "team-execution",
+    "action": "addExecutive",
+    "route": "/api/v1/campaigns/:id/executives"
+  },
+  {
+    "method": "delete",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateRemoveExecutive"],
+    "controller": "team-execution",
+    "action": "removeExecutive",
+    "route": "/api/v1/campaigns/:id/executives/:execId"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateAssignLeads"
+    ],
+    "controller": "team-execution",
+    "action": "assignLeads",
+    "route": "/api/v1/campaigns/:id/assign-leads"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": ["authenticate", "requireExecutive", "validateQueueParams"],
+    "controller": "call-queue",
+    "action": "getNextLead",
+    "route": "/api/v1/campaigns/:id/queue/next"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": ["authenticate", "requireExecutive", "validateSkipLead"],
+    "controller": "call-queue",
+    "action": "skipLead",
+    "route": "/api/v1/campaigns/:id/queue/:leadId/skip"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": [
+      "authenticate",
+      "requireExecutive",
+      "validateJsonContentType",
+      "validateCreateCallRemark"
+    ],
+    "controller": "call-queue",
+    "action": "createCallRemark",
+    "route": "/api/v1/call-remarks"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validatePaginationQuery"],
+    "controller": "call-queue",
+    "action": "getCallRemarks",
+    "route": "/api/v1/campaigns/:id/call-remarks"
+  },
+  {
+    "method": "patch",
+    "middlewareNameList": [
+      "authenticate",
+      "requireCampaignManager",
+      "validateJsonContentType",
+      "validateConfirmRemark"
+    ],
+    "controller": "call-queue",
+    "action": "confirmConversion",
+    "route": "/api/v1/call-remarks/:id/confirm"
+  },
+  {
+    "method": "post",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateDispatchEmail"],
+    "controller": "email-operations",
+    "action": "dispatchEmail",
+    "route": "/api/v1/campaigns/:id/dispatch-email"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager", "validateJobStatus"],
+    "controller": "email-operations",
+    "action": "getJobStatus",
+    "route": "/api/v1/email-jobs/:jobId/status"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "requireCampaignManager"],
+    "controller": "dashboard",
+    "action": "getManagerSummary",
+    "route": "/api/v1/dashboards/manager-summary"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateExecPerformance"],
+    "controller": "dashboard",
+    "action": "getExecPerformance",
+    "route": "/api/v1/dashboards/exec-performance"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateClientPortal"],
+    "controller": "dashboard",
+    "action": "getClientPortalSummary",
+    "route": "/api/v1/dashboards/client-portal"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateCampaignSummary"],
+    "controller": "report",
+    "action": "getCampaignSummary",
+    "route": "/api/v1/reports/campaign-summary/:id"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateExport"],
+    "controller": "report",
+    "action": "exportEngagements",
+    "route": "/api/v1/reports/export/engagements"
+  },
+  {
+    "method": "get",
+    "middlewareNameList": ["authenticate", "validateExport"],
+    "controller": "report",
+    "action": "exportConverted",
+    "route": "/api/v1/reports/export/converted"
+  }
 ]

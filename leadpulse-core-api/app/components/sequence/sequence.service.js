@@ -1,4 +1,4 @@
-﻿const { Sequence, Campaign, ClientManager, CallRemark, User } = require("leadpulse-data-model");
+﻿const { Sequence, Campaign, LeadListMembership, ClientLead, MasterContact, ClientManager, CallRemark, User } = require("leadpulse-data-model");
 const { ForbiddenError, NotFoundError } = require('../../lib/error');
 
 class SequenceService {
@@ -47,21 +47,53 @@ class SequenceService {
     
     const sequences = rows.map(seq => seq.toJSON());
     
-    // 🚀 OPTIMIZATION: Extract all campaign IDs and do ONE aggregate query (NO N+1 loops!)
     const campaignIds = sequences.flatMap(seq => (seq.campaigns || []).map(c => c.id));
     
     let conversionMap = {};
+    let deliveryMap = {};
+
     if (campaignIds.length > 0) {
-      const conversions = await CallRemark.findAll({
+      const { Op } = require('sequelize');
+      const { LeadEngagement } = require('leadpulse-data-model'); // Need to require Email table
+
+      // 1. Call Conversions
+      const callConversions = await CallRemark.findAll({
         where: { campaignId: campaignIds, callOutcome: 'Converted' },
-        attributes: ['campaignId', [fn('COUNT', col('id')), 'totalConversions']],
+        attributes: ['campaignId', [fn('COUNT', col('id')), 'total']],
         group: ['campaignId'],
         raw: true
       });
-      
-      // Map it for O(1) lookup
-      conversions.forEach(c => {
-        conversionMap[c.campaignId] = parseInt(c.totalConversions, 10);
+      callConversions.forEach(c => conversionMap[c.campaignId] = parseInt(c.total, 10));
+
+      // 2. Email Conversions
+      const emailConversions = await LeadEngagement.findAll({
+        where: { campaignId: campaignIds, convertedAt: { [Op.not]: null } },
+        attributes: ['campaignId', [fn('COUNT', col('id')), 'total']],
+        group: ['campaignId'],
+        raw: true
+      });
+      emailConversions.forEach(c => {
+        conversionMap[c.campaignId] = (conversionMap[c.campaignId] || 0) + parseInt(c.total, 10);
+      });
+
+      // 3. Call Deliveries (Total Dials)
+      const callTotals = await CallRemark.findAll({
+        where: { campaignId: campaignIds },
+        attributes: ['campaignId', [fn('COUNT', col('id')), 'total']],
+        group: ['campaignId'],
+        raw: true
+      });
+      callTotals.forEach(c => deliveryMap[c.campaignId] = parseInt(c.total, 10));
+
+      // 4. Email Deliveries (Total Sent)
+      const emailTotals = await LeadEngagement.findAll({
+        where: { campaignId: campaignIds },
+        attributes: ['campaignId', [fn('COUNT', col('id')), 'total']],
+        group: ['campaignId'],
+        raw: true
+      });
+      emailTotals.forEach(c => {
+        deliveryMap[c.campaignId] = (deliveryMap[c.campaignId] || 0) + parseInt(c.total, 10);
       });
     }
 
@@ -74,6 +106,7 @@ class SequenceService {
         campaigns: (seq.campaigns || []).map(camp => {
           
           const convertedLeads = conversionMap[camp.id] || 0;
+          const totalDelivered = deliveryMap[camp.id] || 0; // 🚀 Use the dynamic map instead of 0
           
           return {
             id: camp.id,
@@ -84,7 +117,7 @@ class SequenceService {
             cost: camp.pricingModel === 'flat_retainer' 
                ? `$${Number(camp.retainerAmount || 0).toLocaleString()}` 
                : `$${Number((camp.ratePerLead || 0) * convertedLeads).toLocaleString()}`,
-            totalDelivered: 0,
+            totalDelivered: totalDelivered,
             targetAudience: "Enterprise B2B Decision Makers",
             schedule: camp.scheduleType || 'Daily Automated',
             description: camp.description
@@ -105,6 +138,45 @@ class SequenceService {
     // Verify access AFTER fetching, so we know which client this belongs to
     await this.verifyClientAccess(userId, sequence.clientId);
     return sequence;
+  }
+
+  async getSequenceConvertedLeads(userId, userRole, sequenceId) {
+    
+    const sequence = await Sequence.findByPk(sequenceId);
+    if (!sequence) throw new NotFoundError("Sequence not found");
+
+    // Re-use your existing security check
+    await this.verifyClientAccess(userId, sequence.clientId, userRole);
+
+    const memberships = await LeadListMembership.findAll({
+      where: {
+        leadListId: sequence.leadListId,
+        status: 'Converted' // Only fetch leads that have successfully converted
+      },
+      include: [{
+        model: ClientLead,
+        as: 'clientLead',
+        include: [{
+          model: MasterContact,
+          as: 'masterContact'
+        }]
+      }],
+      order: [['updatedAt', 'DESC']]
+    });
+
+    // Format strictly for your frontend DeepDiveView table
+    return memberships.map(m => {
+      const contact = m.clientLead?.masterContact;
+      return {
+        id: m.clientLeadId,
+        name: contact ? `${contact.firstName} ${contact.lastName}` : 'Unknown Lead',
+        email: contact?.email || 'No email',
+        phone: contact?.phone || 'No phone',
+        company: contact?.company || 'Unknown Company',
+        jobTitle: contact?.jobTitle || 'N/A',
+        convertedDate: m.updatedAt.toLocaleDateString()
+      };
+    });
   }
 }
 

@@ -10,79 +10,8 @@ import CampaignDetailsModal from "@/components/for_client/CampaignDetailsModal";
 import { getSequences, getSequence } from "@/lib/sequences";
 import { exportConvertedLeads } from "@/lib/reports";
 import { ArrowLeft, ChevronRight } from "lucide-react";
+import api from "@/api/api";
 
-/*
-===============================================================================
-MOCK DATA FOR DEVELOPMENT
-===============================================================================
-*/
-const INITIAL_MOCK_SEQUENCES = Array.from({ length: 24 }, (_, i) => {
-  const seqNum = i + 1;
-  const campaignsCount = (i % 4) + 3;
-  const campaigns = Array.from({ length: campaignsCount }, (_, cIdx) => {
-    const cNum = cIdx + 1;
-    const isEmail = cIdx % 2 === 0;
-    const converted = Math.floor(18 + seqNum * 3 + cIdx * 7);
-    return {
-      id: `CMP-${seqNum}0${cNum}`,
-      name: isEmail
-        ? `Nurture Cadence #${cNum} - Cold Email`
-        : `Executive Follow-up #${cNum} - Direct Dial`,
-      type: isEmail ? "Email" : "Call",
-      convertedLeads: converted,
-      totalDelivered: converted * 6,
-      status: "Active",
-      targetAudience: "B2B SaaS Mid-Market & Enterprise",
-      schedule: isEmail ? "Automated drip sequence" : "Mon-Thu 9am-12pm calling block",
-      description: `Targeted outreach focusing on sales automation and pipeline enhancement for sequence #${seqNum}.`,
-    };
-  });
-
-  return {
-    id: `SEQ-${100 + seqNum}`,
-    name: `Enterprise Acquisition Sequence #${seqNum}`,
-    description: `Automated multi-touch campaign cadence combining email drips and phone outreach for Tier-${(i % 3) + 1} prospects.`,
-    campaigns,
-  };
-});
-
-// Mock generator for converted leads
-function generateMockLeadsForSequence(sequence) {
-  if (!sequence) return [];
-  const leads = [];
-  sequence.campaigns.forEach((camp) => {
-    const count = Math.min(camp.convertedLeads, 8);
-    for (let l = 1; l <= count; l++) {
-      leads.push({
-        id: `LEAD-${camp.id}-${100 + l}`,
-        name: [
-          "Sophia Martinez",
-          "Alexander Wright",
-          "Elena Rostova",
-          "David Kim",
-          "Claire Dupont",
-          "Marcus Vance",
-          "Hannah Abbott",
-          "Liam O'Connor",
-        ][(l + sequence.campaigns.indexOf(camp)) % 8],
-        email: `lead.${camp.id.toLowerCase()}.${l}@enterprise-demo.com`,
-        phone: `+1 (555) 019-${2000 + l * 13}`,
-        company: [
-          "Apex Global Systems",
-          "Starlight Media Corp",
-          "Vanguard Technologies",
-          "Quantum Logistics",
-          "Horizon Healthcare",
-          "Silverline Analytics",
-        ][l % 6],
-        campaignName: camp.name,
-        convertedDate: `2026-03-${10 + (l % 15)}`,
-        status: "Converted",
-      });
-    }
-  });
-  return leads;
-}
 
 // Generate dedicated Converted Leads PDF Report
 function printConvertedLeadsReport({ sequence, leads = [] }) {
@@ -97,9 +26,9 @@ function printConvertedLeadsReport({ sequence, leads = [] }) {
 
   const rows = leads
     .map(
-      (lead) => `
+      (lead, index) => `
       <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-        <td style="padding: 8px 10px; font-family: monospace; font-weight: 600; color: #475569;">${lead.id}</td>
+        <td style="padding: 8px 10px; font-family: monospace; font-weight: 600; color: #475569;">${index+1}</td>
         <td style="padding: 8px 10px; font-weight: 700; color: #0f172a;">${lead.name}</td>
         <td style="padding: 8px 10px; color: #334155;">
           ${lead.email}
@@ -201,7 +130,7 @@ function printConvertedLeadsReport({ sequence, leads = [] }) {
         <table>
           <thead>
             <tr>
-              <th>Lead ID</th>
+              <th>S.NO.</th>
               <th>Lead Name</th>
               <th>Contact Info</th>
               <th>Company</th>
@@ -275,7 +204,7 @@ export default function DeepDiveView() {
 
   /*
   =============================================================================
-  BACKEND INTEGRATION POINT 2: Load Converted Leads for Selected Sequence
+  BACKEND INTEGRATION POINT 2: Load Converted Leads for Selected Sequence m rn
   =============================================================================
   */
   useEffect(() => {
@@ -288,17 +217,21 @@ export default function DeepDiveView() {
 
     async function fetchSequenceDetailsAndLeads() {
       try {
-        // const res = await getSequence(selectedSequence.id);
-        if (res?.leads && Array.isArray(res.leads) && isMounted) {
-          setLeadsList(res.leads);
+        // 🚀 NEW: Call the dedicated converted-leads endpoint
+        const response = await api.get(`/sequences/${selectedSequence.id}/converted-leads`);
+        const fetchedLeads = response.data?.data;
+        
+        if (fetchedLeads && Array.isArray(fetchedLeads) && isMounted) {
+          setLeadsList(fetchedLeads);
           return;
         }
       } catch (err) {
-        // Backend not reachable; fallback to mock leads
+        console.error("Failed to fetch converted leads", err);
       }
 
       if (isMounted) {
-        // setLeadsList(generateMockLeadsForSequence(selectedSequence));
+        // Fallback or empty state if it fails
+        setLeadsList([]);
       }
     }
 

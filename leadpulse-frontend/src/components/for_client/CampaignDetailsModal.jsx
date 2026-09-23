@@ -25,7 +25,7 @@ export default function CampaignDetailsModal({ show, onClose, campaign, sequence
             <div>
               <h3 className="client-modal-title">{campaign.name}</h3>
               <p className="client-modal-subtitle">
-                Sequence: <span className="font-medium text-slate-800">{sequenceName}</span> &middot; ID: <span className="font-mono font-semibold">{campaign.id}</span>
+                Sequence: <span className="font-medium text-slate-800">{sequenceName}</span>
               </p>
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function CampaignDetailsModal({ show, onClose, campaign, sequence
 
           {/* Description */}
           <div className="client-detail-card">
-            <h4 className="client-detail-heading">Performance Summary</h4>
+            <h4 className="client-detail-heading">Campaign Description</h4>
             <p className="text-sm text-slate-600 leading-relaxed">
               {campaign.description ||
                 `This ${campaign.type.toLowerCase()} campaign was executed as part of the ${sequenceName} workflow, yielding ${campaign.convertedLeads} verified sales-qualified lead conversions at a steady conversion rate of ${conversionRate}%.`}

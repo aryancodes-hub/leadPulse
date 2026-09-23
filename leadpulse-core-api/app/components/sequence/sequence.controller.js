@@ -1,5 +1,5 @@
-﻿const SequenceService = require('./sequence.service');
-const { sendSuccess } = require('../../utils/response-wrapper');
+﻿const SequenceService = require("./sequence.service");
+const { sendSuccess } = require("../../utils/response-wrapper");
 
 class SequenceController {
   constructor() {
@@ -9,43 +9,67 @@ class SequenceController {
   async createSequence(req, res, next) {
     try {
       const sequence = await this.sequenceService.createSequence(req.user.id, req.body);
-      return sendSuccess(res, sequence, 'Sequence created successfully', null, 201);
-    } catch (error) { next(error); }
+      return sendSuccess(res, sequence, "Sequence created successfully", null, 201);
+    } catch (error) {
+      next(error);
+    }
   }
 
   async getSequences(req, res, next) {
     try {
-      const clientId = req.user.role === 'client' ? req.user.clientId : req.query.clientId;
-      if (!clientId) throw new Error('clientId query parameter is required');
-      
+      const clientId = req.user.role === "client" ? req.user.clientId : req.query.clientId;
+      if (!clientId) throw new Error("clientId query parameter is required");
+
       const pagination = req.pagination || { limit: 50, offset: 0, page: 1, pageSize: 50 };
-      
+
       // The service now handles all data formatting
       const { sequences, total } = await this.sequenceService.getSequences(
-        req.user.id, 
-        clientId, 
-        pagination, 
+        req.user.id,
+        clientId,
+        pagination,
         req.user.role
       );
-      
-      const meta = { 
-        total, 
-        page: pagination.page, 
-        pageSize: pagination.pageSize, 
-        totalPages: Math.ceil(total / pagination.pageSize) 
+
+      const meta = {
+        total,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalPages: Math.ceil(total / pagination.pageSize)
       };
-      
-      return sendSuccess(res, sequences, 'Sequences retrieved successfully', meta);
-    } catch (error) { 
-      next(error); 
+
+      return sendSuccess(res, sequences, "Sequences retrieved successfully", meta);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getConvertedLeads(req, res, next) {
+    try {
+      // Pass the userId, role, and sequence ID
+      const leads = await this.sequenceService.getSequenceConvertedLeads(
+        req.user.id,
+        req.user.role,
+        req.params.id
+      );
+
+      // Assuming you use your standard sendSuccess wrapper
+      return res.status(200).json({
+        success: true,
+        message: "Converted leads retrieved",
+        data: leads
+      });
+    } catch (error) {
+      next(error);
     }
   }
 
   async getSequenceById(req, res, next) {
     try {
       const sequence = await this.sequenceService.getSequenceById(req.user.id, req.params.id);
-      return sendSuccess(res, sequence, 'Sequence retrieved successfully');
-    } catch (error) { next(error); }
+      return sendSuccess(res, sequence, "Sequence retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
   }
 }
 module.exports = SequenceController;
@@ -55,7 +79,7 @@ module.exports = SequenceController;
  * tags:
  *   name: Sequences
  *   description: Campaign sequencing and blueprint logic
- * 
+ *
  * /api/v1/sequences:
  *   get:
  *     tags: [Sequences]
@@ -98,7 +122,7 @@ module.exports = SequenceController;
  *     responses:
  *       201:
  *         description: Sequence created
- * 
+ *
  * /api/v1/sequences/{id}:
  *   get:
  *     tags: [Sequences]

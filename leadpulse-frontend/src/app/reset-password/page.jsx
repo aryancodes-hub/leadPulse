@@ -1,8 +1,10 @@
 "use client";
+
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Lock, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react"; // 🚀 Added Eye, EyeOff
-import { resetPassword } from "@/lib/auth"; 
+import { Lock, CheckCircle2, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { resetPassword } from "@/lib/auth"; // Adjust import if your path is different
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -16,29 +18,11 @@ function ResetPasswordForm() {
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
 
-  // 🚀 New states for toggling password visibility
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const styles = {
-    alertError: { backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", padding: "0.75rem", borderRadius: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", marginBottom: "1rem" },
-    alertSuccess: { backgroundColor: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", padding: "1.5rem", borderRadius: "0.5rem", textAlign: "center" },
-    emailTag: { backgroundColor: "#f1f5f9", padding: "0.5rem 0.75rem", borderRadius: "0.25rem", fontSize: "0.75rem", fontFamily: "monospace", color: "#475569", marginBottom: "1rem", boxSizing: "border-box", overflow: "hidden", textOverflow: "ellipsis" },
-    label: { display: "block", fontSize: "0.875rem", fontWeight: "bold", color: "#334155", marginBottom: "0.25rem" },
-    inputWrapper: { position: "relative", marginBottom: "1rem" },
-    icon: { position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" },
-    // 🚀 Increased right padding to 2.5rem to make room for the eye icon
-    input: { width: "100%", boxSizing: "border-box", padding: "0.625rem 2.5rem", backgroundColor: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "0.5rem", outline: "none", fontSize: "0.875rem" },
-    button: { width: "100%", backgroundColor: "#2563eb", color: "#ffffff", fontWeight: "bold", padding: "0.75rem", borderRadius: "0.5rem", border: "none", cursor: status === "loading" ? "not-allowed" : "pointer", fontSize: "0.875rem", marginTop: "0.5rem", opacity: status === "loading" ? 0.7 : 1 },
-    // 🚀 New style for the eye button
-    eyeButton: { position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", padding: 0 }
-  };
-
   if (!email || !token) {
     return (
-      <div style={{...styles.alertError, alignItems: "flex-start"}}>
-        <AlertCircle size={18} style={{ flexShrink: 0, marginTop: "0.125rem" }} />
-        <span style={{ fontWeight: "600", margin: 0 }}>Invalid reset link. Missing token or email in URL.</span>
+      <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-2 border border-red-200">
+        <AlertCircle size={18} className="shrink-0 mt-0.5" />
+        <p className="text-sm font-semibold">Invalid reset link. Missing token or email in URL.</p>
       </div>
     );
   }
@@ -50,13 +34,15 @@ function ResetPasswordForm() {
       setMessage("Passwords do not match.");
       return;
     }
+
     setStatus("loading");
     setMessage("");
+
     try {
       await resetPassword(email, token, newPassword);
       setStatus("success");
       setMessage("Your password has been successfully reset!");
-      setTimeout(() => router.push("/login"), 3000); 
+      setTimeout(() => router.push("/login"), 3000); // Redirect to login
     } catch (err) {
       setStatus("error");
       setMessage(err.response?.data?.message || "Failed to reset password.");
@@ -65,68 +51,82 @@ function ResetPasswordForm() {
 
   if (status === "success") {
     return (
-      <div style={styles.alertSuccess}>
-        <CheckCircle2 size={32} style={{ color: "#059669", margin: "0 auto 0.75rem auto" }} />
-        <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", margin: "0 0 0.25rem 0", color: "#064e3b" }}>Password Updated</h3>
-        <p style={{ fontSize: "0.875rem", fontWeight: "500", margin: "0 0 1rem 0", color: "#065f46" }}>{message}</p>
-        <p style={{ fontSize: "0.75rem", margin: 0, color: "#059669" }}>Redirecting to login...</p>
+      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-6 rounded-lg text-center">
+        <CheckCircle2 className="mx-auto text-emerald-600 mb-3" size={32} />
+        <h3 className="text-lg font-bold mb-1">Password Updated</h3>
+        <p className="text-sm font-medium mb-4">{message}</p>
+        <p className="text-xs text-emerald-600">Redirecting to login...</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ margin: 0 }}>
+    <form onSubmit={handleSubmit} className="space-y-4">
       {status === "error" && (
-        <div style={styles.alertError}>
-          <AlertCircle size={16} /> <span style={{ margin: 0 }}>{message}</span>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2 text-sm">
+          <AlertCircle size={16} /> {message}
         </div>
       )}
       
-      <div style={styles.emailTag}>
-        Resetting for: <strong style={{ color: "#334155" }}>{email}</strong>
+      <div className="bg-slate-100 px-3 py-2 rounded text-xs font-mono text-slate-600 mb-4 truncate">
+        Resetting for: <strong>{email}</strong>
       </div>
 
       <div>
-        <label style={styles.label}>New Password</label>
-        <div style={styles.inputWrapper}>
-          <Lock size={18} style={styles.icon} />
+        <label className="block text-sm font-bold text-slate-700 mb-1">New Password</label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
           <input
-            type={showNew ? "text" : "password"} // 🚀 Toggle type
+            type="password"
             required
             minLength={6}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            style={styles.input}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:border-blue-500 transition-all"
             placeholder="••••••••"
           />
-          <button type="button" onClick={() => setShowNew(!showNew)} style={styles.eyeButton}>
-            {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
         </div>
       </div>
 
       <div>
-        <label style={styles.label}>Confirm Password</label>
-        <div style={styles.inputWrapper}>
-          <Lock size={18} style={styles.icon} />
+        <label className="block text-sm font-bold text-slate-700 mb-1">Confirm Password</label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
           <input
-            type={showConfirm ? "text" : "password"} // 🚀 Toggle type
+            type="password"
             required
             minLength={6}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            style={styles.input}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:border-blue-500 transition-all"
             placeholder="••••••••"
           />
-          <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={styles.eyeButton}>
-            {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
         </div>
       </div>
 
-      <button type="submit" disabled={status === "loading"} style={styles.button}>
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70 mt-2"
+      >
         {status === "loading" ? "Updating..." : "Update Password"}
       </button>
     </form>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+        <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Create New Password</h2>
+        <p className="text-sm text-slate-500 mb-6">Enter and confirm your new password below.</p>
+        
+        {/* Next.js requires useSearchParams to be wrapped in a Suspense boundary */}
+        <Suspense fallback={<div className="text-center text-slate-400">Loading reset token...</div>}>
+          <ResetPasswordForm />
+        </Suspense>
+      </div>
+    </div>
   );
 }

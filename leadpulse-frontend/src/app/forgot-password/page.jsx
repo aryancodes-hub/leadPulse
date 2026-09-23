@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { Mail, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { forgotPassword } from "@/lib/auth"; 
+import { forgotPassword } from "@/lib/auth"; // Adjust import if your path is different
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); 
+  const [status, setStatus] = useState("idle"); // idle, loading, success, error
   const [message, setMessage] = useState("");
 
   const handleSubmit = async (e) => {
@@ -25,64 +25,52 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const styles = {
-    page: { display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", backgroundColor: "#f8fafc", padding: "1rem", fontFamily: "sans-serif" },
-    card: { width: "100%", maxWidth: "400px", backgroundColor: "#ffffff", borderRadius: "1rem", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)", padding: "2rem", border: "1px solid #f1f5f9", boxSizing: "border-box" },
-    title: { fontSize: "1.5rem", fontWeight: "800", color: "#0f172a", margin: "0 0 0.5rem 0" },
-    subtitle: { fontSize: "0.875rem", color: "#64748b", margin: "0 0 1.5rem 0", lineHeight: "1.5" },
-    alertSuccess: { backgroundColor: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", padding: "1rem", borderRadius: "0.5rem", display: "flex", gap: "0.75rem", alignItems: "flex-start" },
-    alertError: { backgroundColor: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", padding: "0.75rem", borderRadius: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", marginBottom: "1rem" },
-    label: { display: "block", fontSize: "0.875rem", fontWeight: "bold", color: "#334155", marginBottom: "0.25rem" },
-    inputWrapper: { position: "relative", marginBottom: "1rem" },
-    icon: { position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" },
-    input: { width: "100%", boxSizing: "border-box", padding: "0.625rem 1rem 0.625rem 2.5rem", backgroundColor: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "0.5rem", outline: "none", fontSize: "0.875rem" },
-    button: { width: "100%", backgroundColor: "#2563eb", color: "#ffffff", fontWeight: "bold", padding: "0.75rem", borderRadius: "0.5rem", border: "none", cursor: status === "loading" ? "not-allowed" : "pointer", fontSize: "0.875rem", marginTop: "0.5rem", opacity: status === "loading" ? 0.7 : 1 },
-    footer: { marginTop: "1.5rem", textAlign: "center" },
-    backLink: { display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.875rem", fontWeight: "600", color: "#64748b", textDecoration: "none" }
-  };
-
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Reset Password</h2>
-        <p style={styles.subtitle}>Enter your email address and we'll send you a link to reset your password.</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+        <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Reset Password</h2>
+        <p className="text-sm text-slate-500 mb-6">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
 
         {status === "success" ? (
-          <div style={styles.alertSuccess}>
-            <CheckCircle2 size={18} style={{ marginTop: "0.125rem", flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: "500" }}>{message}</p>
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-lg flex gap-3 items-start">
+            <CheckCircle2 className="shrink-0 mt-0.5 text-emerald-600" size={18} />
+            <p className="text-sm font-medium">{message}</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ margin: 0 }}>
+          <form onSubmit={handleSubmit} className="space-y-4">
             {status === "error" && (
-              <div style={styles.alertError}>
-                <AlertCircle size={16} /> <span style={{ margin: 0 }}>{message}</span>
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2 text-sm">
+                <AlertCircle size={16} /> {message}
               </div>
             )}
-            
             <div>
-              <label style={styles.label}>Email Address</label>
-              <div style={styles.inputWrapper}>
-                <Mail size={18} style={styles.icon} />
+              <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  style={styles.input}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   placeholder="name@company.com"
                 />
               </div>
             </div>
-            
-            <button type="submit" disabled={status === "loading"} style={styles.button}>
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70"
+            >
               {status === "loading" ? "Sending..." : "Send Reset Link"}
             </button>
           </form>
         )}
 
-        <div style={styles.footer}>
-          <Link href="/login" style={styles.backLink}>
+        <div className="mt-6 text-center">
+          <Link href="/login" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800">
             <ArrowLeft size={16} /> Back to Login
           </Link>
         </div>

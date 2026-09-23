@@ -220,7 +220,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                 <>
                   <KpiCard
                     label="Dispatched"
-                    value={total}
+                    value={dettotal}
                     subtext="outreach emails"
                     icon={<Mail size={13} color="white" />}
                     gradient="linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%)"

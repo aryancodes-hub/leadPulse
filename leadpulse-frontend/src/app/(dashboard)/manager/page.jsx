@@ -15,15 +15,15 @@ export default function ManagerPage() {
 
   return (
     <AuthGuard allowedRoles={["manager", "campaign_manager"]}>
-      <div className="mgr-spa-root">
+      <div className="mgr-spa-root flex h-screen overflow-hidden bg-slate-50">
         {/* Navigation Sidebar */}
-        <ManagerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ManagerSidebar className="w-[260px] shrink-0 bg-[#0b1437] text-white flex flex-col border-r border-white/10 overflow-y-auto" activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Main Viewport */}
         <div className="mgr-main-wrapper">
           <ManagerHeader activeTab={activeTab} />
 
-          <main className="mgr-content-area">
+          <main className="mgr-content-area flex-1 overflow-y-auto p-8">
             {activeTab === "dashboard" && <ManagerDashboard />}
             {activeTab === "clients" && <ManagerClients />}
             {activeTab === "executives" && <ManagerExecutives />}
