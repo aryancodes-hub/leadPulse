@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  core-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.core-api
+    ports:
+      - "5000:5000"
+
+  email-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.email-service
+
+  import-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.import-service

@@ -13,12 +13,9 @@ app.use(cors({ credentials: true,  origin: process.env.FRONTEND_URL || 'http://l
 app.use(express.json());
 app.use(cookieParser());
 
-// Swagger API Documentation - Development Only
-if (process.env.NODE_ENV !== 'production') {
-  const swaggerUi = require('swagger-ui-express');
-  const swaggerSpecs = require('./configs/swagger');
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
-}
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'core-api' });
+});
 
 // Register all API routes centrally
 registerRoutes(app);

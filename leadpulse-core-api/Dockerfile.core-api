@@ -1,0 +1,14 @@
+FROM node:18-alpine
+WORKDIR /app
+
+COPY package*.json ./
+COPY leadpulse-data-model/package*.json ./leadpulse-data-model/
+COPY leadpulse-core-api/package*.json ./leadpulse-core-api/
+
+RUN npm ci
+
+COPY leadpulse-data-model ./leadpulse-data-model
+COPY leadpulse-core-api ./leadpulse-core-api
+
+EXPOSE 5000
+CMD ["npm", "start", "-w", "leadpulse-core-api"]

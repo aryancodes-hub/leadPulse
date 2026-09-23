@@ -1,0 +1,13 @@
+FROM node:18-alpine
+WORKDIR /app
+
+COPY package*.json ./
+COPY leadpulse-data-model/package*.json ./leadpulse-data-model/
+COPY leadpulse-email-service/package*.json ./leadpulse-email-service/
+
+RUN npm ci
+
+COPY leadpulse-data-model ./leadpulse-data-model
+COPY leadpulse-email-service ./leadpulse-email-service
+
+CMD ["npm", "start", "-w", "leadpulse-email-service"]

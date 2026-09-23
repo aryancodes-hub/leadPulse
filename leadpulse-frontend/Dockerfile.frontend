@@ -1,0 +1,22 @@
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+COPY leadpulse-frontend/package*.json ./leadpulse-frontend/
+RUN npm ci
+
+COPY leadpulse-frontend ./leadpulse-frontend
+RUN npm run build -w leadpulse-frontend
+
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+ENV PORT 3000
+
+COPY --from=builder /app/leadpulse-frontend/.next/standalone ./
+COPY --from=builder /app/leadpulse-frontend/.next/static ./.next/static
+COPY --from=builder /app/leadpulse-frontend/public ./public
+
+EXPOSE 3000
+CMD ["node", "server.js"]

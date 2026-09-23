@@ -1,0 +1,25 @@
+version: 1
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            # 1. Amplify starts inside 'leadpulse-frontend', so we step back to the root
+            - cd .. 
+            # 2. Install all dependencies from the root so NPM Workspaces links the data-model
+            - npm ci 
+            # 3. Go back into the frontend folder
+            - cd leadpulse-frontend
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - .next/cache/**/*
+          - ../node_modules/**/*
+    # 4. Tells Amplify this specific app lives in this subfolder
+    appRoot: leadpulse-frontend
