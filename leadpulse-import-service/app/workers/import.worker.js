@@ -1,51 +1,79 @@
-const { ImportJob } = require('leadpulse-data-model');
+const { ImportJob, sequelize } = require('leadpulse-data-model');
 const logger = require('../utils/logger');
 const importService = require('../services/import.service');
 
 class ImportWorker {
   constructor() {
-    this.pollInterval = process.env.POLL_INTERVAL || 10000; // 10 seconds
+    this.pollInterval = process.env.POLL_INTERVAL || 10000;
     this.isRunning = false;
+    this.isShuttingDown = false; 
   }
 
   start() {
     logger.info(`Starting ImportWorker polling every ${this.pollInterval}ms`);
-    setInterval(() => this.poll(), this.pollInterval);
-    this.poll(); // Immediate first run
+    
+    // Listen for AWS scale-down signals
+    process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
+
+    this.timer = setInterval(() => this.poll(), this.pollInterval);
+    this.poll();
+  }
+
+  gracefulShutdown(signal) {
+    logger.info(`Received ${signal}. Preventing new jobs from starting...`);
+    this.isShuttingDown = true;
+    clearInterval(this.timer);
+    
+    if (!this.isRunning) {
+      logger.info('No jobs running. Shutting down safely.');
+      process.exit(0);
+    } else {
+      logger.info('Waiting for current CSV import to finish before shutting down...');
+    }
   }
 
   async poll() {
-    if (this.isRunning) return; // Prevent overlapping runs
+    // Prevent overlapping or grabbing new jobs if AWS is shutting us down
+    if (this.isRunning || this.isShuttingDown) return; 
     
     this.isRunning = true;
     try {
-      // 1. Find the oldest job that is 'Uploaded'
-      const job = await ImportJob.findOne({
-        where: { status: 'Uploaded' },
-        order: [['createdAt', 'ASC']]
+      const job = await sequelize.transaction(async (t) => {
+        const lockedJob = await ImportJob.findOne({
+          where: { status: 'Uploaded' },
+          order: [['createdAt', 'ASC']],
+          lock: true,
+          skipLocked: true, // If another container locked it, skip to the next one
+          transaction: t
+        });
+
+        if (lockedJob) {
+          lockedJob.status = 'Processing';
+          await lockedJob.save({ transaction: t });
+        }
+        return lockedJob;
       });
 
       if (!job) {
         this.isRunning = false;
-        return; // No jobs found
+        return; 
       }
 
-      logger.info(`Found new import job: ${job.id}. Locking for processing...`);
-
-      // 2. Lock the job by changing status to 'Processing'
-      job.status = 'Processing';
-      await job.save();
-
-      // 3. Process the file
-      logger.info(`Starting data ingestion for job: ${job.id}...`);
+      logger.info(`Successfully locked job ${job.id}. Starting data ingestion...`);
       await importService.processJob(job.id);
-      
       logger.info(`Job ${job.id} processing cycle complete.`);
       
     } catch (error) {
       logger.error('Error during ImportWorker polling cycle', { error: error.message, stack: error.stack });
     } finally {
       this.isRunning = false;
+      
+      // If AWS asked us to shut down, and we just finished the job, exit safely now
+      if (this.isShuttingDown) {
+        logger.info('Job finished. Safely shutting down container now.');
+        process.exit(0);
+      }
     }
   }
 }

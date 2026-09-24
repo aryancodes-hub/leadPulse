@@ -16,6 +16,7 @@
     "dev:front": "npm run dev -w leadpulse-frontend"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1138.0",
     "cookie-parser": "^1.4.7",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.9",

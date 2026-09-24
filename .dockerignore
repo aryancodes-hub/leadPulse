@@ -1,0 +1,39 @@
+# Dependency directories (crucial to ignore so Docker builds fresh for Linux)
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# Local environment & secrets (Security risk if included in the image!)
+.env
+.env.*
+.DS_Store
+
+# Version control
+.git/
+.github/
+.gitignore
+
+# Temporary local data & cache
+uploads/
+developmentcache/
+logs/
+*.log
+coverage/
+tmp/
+temp/
+
+# Frontend builds (if you ever dockerize the frontend instead of Amplify)
+.next/
+out/
+build/
+
+# Infrastructure config files
+docker-compose.yml
+Dockerfile*
+amplify.yml
+seed.js
+generate_models.js
+swagger data.html
+test_leads.csv
+email_leads.csv

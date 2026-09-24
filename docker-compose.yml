@@ -12,8 +12,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.email-service
+    ports:
+      - "4000:4000"
 
   import-service:
     build:
       context: .
       dockerfile: Dockerfile.import-service
+    ports:
+      - "3002:3002"
