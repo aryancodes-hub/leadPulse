@@ -5,7 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // output: 'standalone', // Breaks Vercel deployments!
   reactCompiler: true,
   turbopack: {
     root: path.join(__dirname, '../'),
