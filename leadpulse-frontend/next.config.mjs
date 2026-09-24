@@ -10,6 +10,14 @@ const nextConfig = {
   turbopack: {
     root: path.join(__dirname, '../'),
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://leadpulse-alb-v4-aryan-1263877118.ap-south-1.elb.amazonaws.com/api/:path*'
+      }
+    ];
+  }
 };
 
 export default nextConfig;
