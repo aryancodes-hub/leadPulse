@@ -73,24 +73,14 @@ export default function HomePage() {
     }
 
     try {
-      console.log("[DEBUG] Starting registration process...");
       setLoading(true);
-      let recaptchaToken = "test_token_bypass";
-      
-      console.log("[DEBUG] Checking executeRecaptcha...");
-      if (executeRecaptcha) {
-        try {
-          console.log("[DEBUG] Awaiting executeRecaptcha...");
-          recaptchaToken = await executeRecaptcha("register");
-          console.log("[DEBUG] reCAPTCHA success:", recaptchaToken);
-        } catch(e) {
-          console.warn("[DEBUG] reCAPTCHA failed:", e);
-        }
-      } else {
-        console.warn("[DEBUG] executeRecaptcha is null/undefined!");
+      if (!executeRecaptcha) {
+        setError("reCAPTCHA not loaded yet");
+        setLoading(false);
+        return;
       }
+      const recaptchaToken = await executeRecaptcha("register");
 
-      console.log("[DEBUG] Calling register API with payload...");
       await register({
         fullName: form.name,
         email: form.email,
@@ -98,10 +88,9 @@ export default function HomePage() {
         confirmPassword: form.confirmPassword,
         recaptchaToken: recaptchaToken
       });
-      console.log("[DEBUG] API call finished successfully!");
 
       setMessage("Campaign Manager account created successfully. You can now log in.");
-      // ... (reset form)
+
       setForm({
         name: "",
         email: "",
@@ -109,13 +98,9 @@ export default function HomePage() {
         confirmPassword: ""
       });
     } catch (err) {
-      console.error("[DEBUG] Caught error in outer catch:", err);
-      console.error("[DEBUG] err.response:", err.response);
-      console.error("[DEBUG] err.message:", err.message);
       setError(err.response?.data?.message ?? "Registration failed.");
     } finally {
       setLoading(false);
-      console.log("[DEBUG] Process finished.");
     }
   }
 
