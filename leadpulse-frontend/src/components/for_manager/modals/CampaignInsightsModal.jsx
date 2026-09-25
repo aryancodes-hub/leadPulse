@@ -169,8 +169,8 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
           >
             {tab.icon}
             {tab.label}
-            {tab.key === "executive" && <span className="lp-tab-count">{total}</span> || tab.key === "log" && <span className="lp-tab-count">{dettotal}</span>}
-            
+            {(tab.key === "executive" && <span className="lp-tab-count">{total}</span>) ||
+              (tab.key === "log" && <span className="lp-tab-count">{dettotal}</span>)}
           </button>
         ))}
       </div>
@@ -397,7 +397,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
         {/* ── LOG TAB ───────────────────────────────────────── */}
         {activeTab === "log" && (
           <>
-            {total === 0 ? (
+            {dettotal === 0 ? (
               <div className="lp-empty-state">
                 <div className="lp-empty-icon-wrap">
                   <Inbox size={22} color="#7c3aed" />
@@ -426,6 +426,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                           <th className="center">Status</th>
                           <th className="center">Opens</th>
                           <th className="center">Clicks</th>
+                          <th className="center">Converted</th>
                           <th>Sent At</th>
                         </>
                       )}
@@ -559,6 +560,37 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                                 <span className="lp-metric-chip lp-metric-chip-blue">
                                   <MousePointerClick size={10} />
                                   {detail.clicks}
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    color: "#cbd5e1",
+                                    fontFamily: "monospace",
+                                    fontSize: 11
+                                  }}
+                                >
+                                  —
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="center" style={{ whiteSpace: "nowrap" }}>
+                              {detail.converted ? (
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    padding: "2px 8px",
+                                    borderRadius: "12px",
+                                    fontSize: "10px",
+                                    fontWeight: 700,
+                                    backgroundColor: "#dcfce7",
+                                    color: "#166534",
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.5px"
+                                  }}
+                                >
+                                  Converted
                                 </span>
                               ) : (
                                 <span

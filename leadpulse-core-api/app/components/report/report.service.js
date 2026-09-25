@@ -79,7 +79,7 @@ class ReportService {
         model: ClientLead, as: 'clientLead',
         include: [{ model: MasterContact, as: 'masterContact', attributes: ['email', 'firstName', 'lastName'] }]
       }],
-      attributes: ['trackingToken', 'status', 'openCount', 'clickCount', 'sentAt', 'openedAt', 'clickedAt'],
+      attributes: ['trackingToken', 'status', 'openCount', 'clickCount', 'sentAt', 'openedAt', 'clickedAt', 'convertedAt'],
       order: [['createdAt', 'DESC']],
       raw: true,
       nest: true
@@ -94,7 +94,8 @@ class ReportService {
       clicks: e.clickCount,
       sentAt: e.sentAt,
       openedAt: e.openedAt,
-      clickedAt: e.clickedAt
+      clickedAt: e.clickedAt,
+      converted: e.convertedAt ? "Converted" : ""
     }));
   }
 
