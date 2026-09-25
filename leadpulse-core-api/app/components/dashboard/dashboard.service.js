@@ -47,28 +47,41 @@ class DashboardService {
       where: { managerId, role: "executive", isActive: true }
     });
 
-    const allConversions = await CallRemark.findAll({
-      where: { callOutcome: "Converted" },
+    // 🚀 NEW: Single query to the master table instead of scraping CallRemarks
+    const convertedMemberships = await LeadListMembership.findAll({
+      where: { status: "Converted" },
       include: [
         {
-          model: Campaign,
-          as: "campaign",
-          where: { createdByUserId: managerId },
-          include: [{ model: Client, as: "client" }]
+          model: LeadList,
+          as: "leadList",
+          required: true,
+          include: [
+            {
+              model: Campaign,
+              as: "campaigns",
+              where: { createdByUserId: managerId },
+              required: true,
+              include: [{ model: Client, as: "client" }]
+            }
+          ]
         }
       ]
     });
 
     const clientCounts = {};
-    for (const remark of allConversions) {
-      const cName = remark.campaign?.client?.name || "Unknown Client";
-      clientCounts[cName] = (clientCounts[cName] || 0) + 1;
+    for (const membership of convertedMemberships) {
+      const campaigns = membership.leadList?.campaigns || [];
+      if (campaigns.length > 0) {
+        const cName = campaigns[0].client?.name || "Unknown Client";
+        clientCounts[cName] = (clientCounts[cName] || 0) + 1;
+      }
     }
     const conversionsByClient = Object.keys(clientCounts).map((name) => ({
       clientName: name,
       conversions: clientCounts[name]
     }));
 
+    // 🚀 QA Table (Left exactly as is, it correctly grabs UNAPPROVED claims for the UI)
     const pendingData = await CallRemark.findAll({
       where: {
         callOutcome: "Converted",
@@ -90,10 +103,10 @@ class DashboardService {
       ],
       order: [["createdAt", "ASC"]] 
     });
-    // Map for the frontend table
+    
     const pendingApprovals = pendingData.map((r) => ({
-      id: r.id.substring(0, 8), // Short ID for clean UI
-      fullId: r.id, // Keep full ID for the API PATCH request
+      id: r.id.substring(0, 8), 
+      fullId: r.id, 
       execName: r.executive?.fullName || "Unknown Exec",
       leadName: r.clientLead?.masterContact
         ? `${r.clientLead.masterContact.firstName} ${r.clientLead.masterContact.lastName}`
@@ -105,11 +118,9 @@ class DashboardService {
       outcome: r.callOutcome
     }));
 
+    // 🚀 FIXED: Removed the duplicate keys from the return block!
     return {
       activeCampaigns: activeCampaignsCount,
-      activeClients: activeClientsCount,
-      activeExecutives: activeExecutivesCount,
-      conversionsByClient,
       activeClients: activeClientsCount,
       activeExecutives: activeExecutivesCount,
       conversionsByClient,

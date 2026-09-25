@@ -1,4 +1,4 @@
-﻿const path = require("path");
+const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 
 const { sequelize } = require('leadpulse-data-model');
@@ -13,7 +13,11 @@ async function bootstrap() {
     await sequelize.authenticate();
     logger.info('Connected to PostgreSQL successfully.');
     
-    // 2. Start the server, passing the DB connection for graceful shutdown
+    // 2. Auto-migrate tables
+    await sequelize.sync({ alter: true });
+    logger.info('Database synchronized and tables migrated.');
+
+    // 3. Start the server, passing the DB connection for graceful shutdown
     startServer(PORT, sequelize);
     
   } catch (error) {

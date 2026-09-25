@@ -99,22 +99,27 @@ class CallQueueService {
 
       const campaign = await Campaign.findByPk(campaignId, { transaction: t });
 
-      // Update only the local list membership to preserve historical conversion context
-       let mappedMembershipStatus = 'Pending';
+      // 🚀 Auto-update the master list for everything EXCEPT "Converted"
+      let mappedMembershipStatus = null; 
+
       if (callOutcome === 'Converted' || leadStatusUpdate === 'Converted') {
-        mappedMembershipStatus = 'Converted';
-      } else if (leadStatusUpdate === 'Dead') {
+        // DO NOTHING! Leave it strictly for the QA Manager to confirm
+        mappedMembershipStatus = null;
+      } else if (leadStatusUpdate === 'Dead' || callOutcome === 'Not_Interested') {
         mappedMembershipStatus = 'Dead';
-      } else if (callOutcome === 'Callback Requested') {
+      } else if (['Callback Requested', 'Callback_Requested'].includes(callOutcome)) {
         mappedMembershipStatus = 'Callback';
-      } else if (['Wrong Number', 'Not Answered','Left Voicemail'].includes(callOutcome)) {
+      } else if (['Wrong Number', 'Not Answered', 'Left Voicemail', 'Wrong_Number', 'Not_Answered', 'Left_Voicemail'].includes(callOutcome)) {
         mappedMembershipStatus = 'Unreachable';
       }
 
-      await LeadListMembership.update(
-        { status: mappedMembershipStatus },
-        { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
-      );
+      // If we have an auto-approved status, push it directly to the master table
+      if (mappedMembershipStatus) {
+        await LeadListMembership.update(
+          { status: mappedMembershipStatus },
+          { where: { clientLeadId, leadListId: campaign.leadListId }, transaction: t }
+        );
+      }
 
       // --- Check if campaign is completely out of leads ---
       const remainingLeads = await CampaignLead.count({
@@ -157,9 +162,10 @@ class CallQueueService {
     return { remarks: rows, total: count };
   }
 
-  async confirmConversion(managerId, remarkId, conversionConfirmed) {
+    async confirmConversion(managerId, remarkId, conversionConfirmed) {
+    // 🚀 FIX: We added "leadListId" to the attributes so we can target the master table
     const remark = await CallRemark.findByPk(remarkId, {
-      include: [{ model: Campaign, as: "campaign", attributes: ["id", "clientId"] }]
+      include: [{ model: Campaign, as: "campaign", attributes: ["id", "clientId", "leadListId"] }]
     });
 
     if (!remark) throw new NotFoundError("Call remark not found");
@@ -179,11 +185,37 @@ class CallQueueService {
       return { remark, alreadyConfirmed: true };
     }
 
-    await remark.update({
-      conversionConfirmed,
-      confirmedByUserId: managerId,
-      confirmedAt: new Date()
+    // 🚀 FIX: Wrapped in a transaction to update both tables synchronously
+    await sequelize.transaction(async (t) => {
+      
+      // 1. Update the CallRemark audit log
+      await remark.update({
+        conversionConfirmed,
+        confirmedByUserId: managerId,
+        confirmedAt: new Date()
+      }, { transaction: t });
+
+      // 2. The Official QA Action -> Update the Master Table
+      let finalMasterStatus;
+      if (conversionConfirmed === true) {
+        finalMasterStatus = 'Converted';
+      } else {
+        // Based on your rule: If a manager rejects the claim, the lead backed out. Mark as Dead.
+        finalMasterStatus = 'Dead';
+      }
+
+      await LeadListMembership.update(
+        { status: finalMasterStatus },
+        { 
+          where: { 
+            clientLeadId: remark.clientLeadId, 
+            leadListId: remark.campaign.leadListId 
+          }, 
+          transaction: t 
+        }
+      );
     });
+
     return { remark, alreadyConfirmed: false };
   }
 }

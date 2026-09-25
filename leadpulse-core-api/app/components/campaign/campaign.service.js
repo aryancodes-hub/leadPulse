@@ -40,12 +40,25 @@ class CampaignService {
     });
     if (!campaign) throw new NotFoundError("Campaign not found");
 
-    // 🚀 Pass the role so the updated verification works!
     await this.verifyClientAccess(userId, campaign.clientId, role);
 
-    const convertedCount = await CallRemark.count({
-      where: { campaignId: id, callOutcome: "Converted" }
-    });
+    let convertedCount = 0;
+    let deliveredCount = 0;
+
+    // Dynamically calculate metrics based on campaign type!
+    if (campaign.type === "call") {
+      convertedCount = await CallRemark.count({
+        where: { campaignId: id, callOutcome: "Converted" }
+      });
+    } else {
+      convertedCount = await LeadEngagement.count({
+        where: { campaignId: id, convertedAt: { [Op.not]: null } }
+      });
+      deliveredCount = await LeadEngagement.count({
+        where: { campaignId: id, status: { [Op.notIn]: ["sent", "bounced", "spamreport"] } }
+      });
+    }
+
     const cData = campaign.toJSON();
 
     return {
@@ -58,7 +71,7 @@ class CampaignService {
           ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1)
           : "Active",
         convertedLeads: convertedCount,
-        totalDelivered: 0,
+        totalDelivered: deliveredCount,
         targetAudience: cData.segmentationFilters
           ? JSON.stringify(cData.segmentationFilters)
           : "Enterprise B2B Decision Makers",
