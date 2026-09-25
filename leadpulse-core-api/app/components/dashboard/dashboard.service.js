@@ -9,6 +9,8 @@ const {
   Client,
   ClientLead,
   MasterContact,
+  LeadListMembership, 
+  LeadList,
   sequelize
 } = require("leadpulse-data-model");
 const { Op } = require("sequelize");
@@ -47,21 +49,21 @@ class DashboardService {
       where: { managerId, role: "executive", isActive: true }
     });
 
-    // 🚀 NEW: Single query to the master table instead of scraping CallRemarks
-    const convertedMemberships = await LeadListMembership.findAll({
-      where: { status: "Converted" },
+    // 🚀 NEW: Pivoted the query to start from Campaign and drill down to follow existing associations safely
+    const campaigns = await Campaign.findAll({
+      where: { createdByUserId: managerId },
       include: [
+        { model: Client, as: "client" },
         {
           model: LeadList,
           as: "leadList",
-          required: true,
+          required: true, 
           include: [
             {
-              model: Campaign,
-              as: "campaigns",
-              where: { createdByUserId: managerId },
-              required: true,
-              include: [{ model: Client, as: "client" }]
+              model: LeadListMembership,
+              as: "members",
+              where: { status: "Converted" },
+              required: true 
             }
           ]
         }
@@ -69,19 +71,27 @@ class DashboardService {
     });
 
     const clientCounts = {};
-    for (const membership of convertedMemberships) {
-      const campaigns = membership.leadList?.campaigns || [];
-      if (campaigns.length > 0) {
-        const cName = campaigns[0].client?.name || "Unknown Client";
-        clientCounts[cName] = (clientCounts[cName] || 0) + 1;
+    const uniqueConversions = new Set(); // Protects against double-counting
+
+    for (const campaign of campaigns) {
+      const cName = campaign.client?.name || "Unknown Client";
+      if (!clientCounts[cName]) clientCounts[cName] = 0;
+      
+      const members = campaign.leadList?.members || [];
+      for (const m of members) {
+        if (!uniqueConversions.has(m.id)) {
+          uniqueConversions.add(m.id);
+          clientCounts[cName]++;
+        }
       }
     }
+
     const conversionsByClient = Object.keys(clientCounts).map((name) => ({
       clientName: name,
       conversions: clientCounts[name]
     }));
 
-    // 🚀 QA Table (Left exactly as is, it correctly grabs UNAPPROVED claims for the UI)
+    // 🚀 QA Table (Left exactly as is)
     const pendingData = await CallRemark.findAll({
       where: {
         callOutcome: "Converted",
@@ -118,7 +128,6 @@ class DashboardService {
       outcome: r.callOutcome
     }));
 
-    // 🚀 FIXED: Removed the duplicate keys from the return block!
     return {
       activeCampaigns: activeCampaignsCount,
       activeClients: activeClientsCount,
@@ -168,7 +177,7 @@ class DashboardService {
     });
 
     const disqualifiedCount = await CallRemark.count({
-      where: { executiveUserId, callOutcome: "Not Interested" }
+      where: { executiveUserId, callOutcome: "Not_Interested" }
     });
 
     // 3. Approval & Financial Tracking (In Review vs Confirmed)
@@ -213,7 +222,7 @@ class DashboardService {
     const scheduledCallbacks = await CallRemark.findAll({
       where: {
         executiveUserId,
-        callOutcome: "Callback Requested"
+        callOutcome: "Callback_Requested"
       },
       include: [
         {
@@ -293,7 +302,6 @@ class DashboardService {
       if (stat.status === "completed") completedCampaigns += count;
     });
 
-    const { LeadListMembership, LeadList } = require("leadpulse-data-model");
     const totalConversion = await LeadListMembership.count({
       include: [{ model: LeadList, as: "leadList", where: { clientId } }],
       where: { status: "Converted" }

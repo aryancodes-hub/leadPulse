@@ -122,7 +122,7 @@ export default function ExecutiveQueueView({ activeCampaign, perfData, refreshDa
       if (refreshData) refreshData();
 
       setFeedbackMsg(
-        form.callOutcome === "Callback Requested"
+        form.callOutcome === "Callback_Requested"
           ? `Callback scheduled for ${currentLead?.name}! Added to Callbacks tab.`
           : `Remarks recorded for ${currentLead?.name}! Loading next lead...`
       );
@@ -375,7 +375,7 @@ export default function ExecutiveQueueView({ activeCampaign, perfData, refreshDa
                     setForm({
                       ...form,
                       callOutcome: newOutcome,
-                      followUpDate: newOutcome === "Callback Requested" ? form.followUpDate : ""
+                      followUpDate: newOutcome === "Callback_Requested" ? form.followUpDate : ""
                     });
                     if (formError) setFormError("");
                   }}
@@ -388,13 +388,13 @@ export default function ExecutiveQueueView({ activeCampaign, perfData, refreshDa
                   <option value="Busy">Busy</option>
                   <option value="Wrong_Number">Wrong Number</option>
                   <option value="Left_Voicemail">Left Voicemail</option>
-                  <option value="Callback Requested">Callback Requested</option>
+                  <option value="Callback_Requested">Callback Requested</option>
                   <option value="Not_Interested">Not Interested</option>
                   <option value="Converted">Converted</option>
                 </select>
               </div>
 
-              {form.callOutcome === "Callback Requested" && (
+              {form.callOutcome === "Callback_Requested" && (
                 <div
                   style={{
                     padding: "10px 14px",
@@ -425,7 +425,7 @@ export default function ExecutiveQueueView({ activeCampaign, perfData, refreshDa
                 </div>
               </div>
 
-              {form.callOutcome === "Callback Requested" && (
+              {form.callOutcome === "Callback_Requested" && (
                 <div className="exec-form-group">
                   <label className="exec-form-label">Follow-Up Date:</label>
                   <div className="relative">
