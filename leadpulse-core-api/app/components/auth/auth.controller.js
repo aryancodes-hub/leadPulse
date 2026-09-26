@@ -8,6 +8,25 @@ class AuthController {
     this.authService = new AuthService();
   }
   
+    async getMe(req, res, next) {
+    try {
+      const user = await this.authService.getMe(req.user.id);
+      return sendSuccess(res, user, 'User retrieved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateProfile(req, res, next) {
+    try {
+      const { fullName } = req.body;
+      const user = await this.authService.updateProfile(req.user.id, fullName);
+      return sendSuccess(res, user, 'Profile updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   /**
    * @swagger
    * /api/v1/auth/register:

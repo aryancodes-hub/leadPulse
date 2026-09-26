@@ -134,38 +134,6 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-
-          <div className="hero-visual">
-            <div className="hero-visual-label">
-              <span>
-                <span className="dot" />
-                Live campaign pulse
-              </span>
-
-              <span>Last 30 days</span>
-            </div>
-
-            <svg className="pulse-line" viewBox="0 0 300 90" preserveAspectRatio="none">
-              <path d="M0 60 L35 60 L48 20 L60 78 L74 45 L90 45 L104 15 L118 65 L140 65 L155 38 L170 38 L185 55 L210 55 L226 25 L242 70 L260 40 L300 40" />
-            </svg>
-
-            <div className="hero-visual-stats">
-              <div>
-                <strong>428</strong>
-                Leads worked
-              </div>
-
-              <div>
-                <strong>16.8%</strong>
-                Conversion
-              </div>
-
-              <div>
-                <strong>32</strong>
-                Active campaigns
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

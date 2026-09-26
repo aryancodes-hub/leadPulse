@@ -14,7 +14,7 @@ export default function ExecutiveCallHistoryTab({
   const isCallbacksOnly = viewMode === "callbacks";
 
   const displayedList = callLogs.filter((call) => {
-    if (isCallbacksOnly && call.outcome !== "Callback Requested") return false;
+    if (isCallbacksOnly && call.outcome !== "Callback_Requested") return false;
     const term = searchTerm.toLowerCase();
     const leadName = (call.leadName || "").toLowerCase();
     const company = (call.company || "").toLowerCase();

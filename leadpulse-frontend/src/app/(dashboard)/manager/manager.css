@@ -1,3 +1,5 @@
+
+@import "tailwindcss";
 /* Core Layout */
 .mgr-spa-root {
   min-height: 100vh;

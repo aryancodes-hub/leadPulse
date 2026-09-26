@@ -6,8 +6,9 @@ import ExecutiveSidebar from "@/components/for_executive/ExecutiveSidebar";
 import ExecutiveHeader from "@/components/for_executive/ExecutiveHeader";
 import ExecutiveDashboardView from "@/components/for_executive/ExecutiveDashboardView";
 import ExecutiveQueueView from "@/components/for_executive/ExecutiveQueueView";
-import ExecutiveCallHistoryTab from "@/components/for_executive/ExecutiveCallHistoryTab";
+// import ExecutiveCallHistoryTab from "@/components/for_executive/ExecutiveCallHistoryTab";
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
+import ProfileView from "@/components/ProfileView";
 import { getExecutivePerformance } from "@/lib/dashboards"; // 🚀 Import real API
 
 export default function ExecutivePage() {
@@ -26,7 +27,8 @@ export default function ExecutivePage() {
       if (data && data.activeCampaign) {
         setActiveCampaign({
           ...data.activeCampaign,
-          campaign_type: data.activeCampaign.type 
+          campaign_type: data.activeCampaign.type,
+          isUnassigned: data.isUnassigned
         });
       }
       if (data && data.executiveDetails) {
@@ -65,9 +67,9 @@ export default function ExecutivePage() {
     if (activeTab === "history") {
       return [{ label: "Executive", onClick: () => setActiveTab("dashboard") }, { label: "Call History" }];
     }
-    if (activeTab === "callbacks") {
-      return [{ label: "Executive", onClick: () => setActiveTab("dashboard") }, { label: "Scheduled Callbacks" }];
-    }
+    // if (activeTab === "callbacks") {
+    //   return [{ label: "Executive", onClick: () => setActiveTab("dashboard") }, { label: "Scheduled Callbacks" }];
+    // }
     
     return [
       { label: "Dashboard", onClick: () => setActiveTab("dashboard") },
@@ -86,6 +88,7 @@ export default function ExecutivePage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           campaignType={activeCampaign?.campaign_type || "call"}
+           isUnassigned={activeCampaign?.isUnassigned}
         />
 
         {/* Main Content Area */}
@@ -110,13 +113,15 @@ export default function ExecutivePage() {
              <ExecutiveQueueView activeCampaign={activeCampaign} perfData={perfData} refreshData={fetchPerformance} />
           )}
 
-          {isCall && activeTab === "callbacks" && (
+          {/* {isCall && activeTab === "callbacks" && (
             <ExecutiveCallHistoryTab
               viewMode="callbacks"
               onDialLead={handleDialLead}
               callLogs={perfData?.callLogs || []}
             />
-          )}
+          )} */}
+
+           {activeTab === "profile" && <ProfileView />}
         </div>
       </div>
     </AuthGuard>

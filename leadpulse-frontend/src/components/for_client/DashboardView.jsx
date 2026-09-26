@@ -38,12 +38,14 @@ export default function DashboardView() {
         const data = await getClientPortal();
         if (data && isMounted) {
           setStats({
-            totalConversion: data.totalConversion
-              ? data.totalConversion.toLocaleString()
-              : MOCK_CLIENT_STATS.totalConversion,
-            conversionRate: data.conversionRate
-              ? `${data.conversionRate}%`
-              : MOCK_CLIENT_STATS.conversionRate,
+            totalConversion:
+              data.totalConversion !== undefined
+                ? data.totalConversion.toLocaleString()
+                : MOCK_CLIENT_STATS.totalConversion,
+            conversionRate:
+              data.conversionRate !== undefined
+                ? `${data.conversionRate}%`
+                : MOCK_CLIENT_STATS.conversionRate,
             totalCalls: data.totalCalls ?? MOCK_CLIENT_STATS.totalCalls,
             totalEmails: data.totalEmails ?? MOCK_CLIENT_STATS.totalEmails,
             activeCampaigns: data.activeCampaigns ?? MOCK_CLIENT_STATS.activeCampaigns,

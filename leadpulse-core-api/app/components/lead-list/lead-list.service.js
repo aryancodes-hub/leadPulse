@@ -1,4 +1,4 @@
-﻿const { LeadList, ImportJob, ClientManager, LeadListMembership, ClientLead, MasterContact, sequelize } = require('leadpulse-data-model');
+const { LeadList, ImportJob, ClientManager, LeadListMembership, ClientLead, Sequence, MasterContact, sequelize } = require('leadpulse-data-model');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../../lib/error');
 const storageService = require('../../utils/storage');
 
@@ -46,18 +46,45 @@ class LeadListService {
     return job;
   }
 
-  async getLeadLists(userId, clientId, pagination) {
-    await this.verifyClientAccess(userId, clientId);
+  async getLeadLists(userId, clientId, pagination, role) {
     const { limit, offset } = pagination;
+    let whereClause = {};
+
+    if (clientId) {
+      await this.verifyClientAccess(userId, clientId);
+      whereClause.clientId = clientId;
+    } else if (role === "campaign_manager") {
+      const { ClientManager } = require('leadpulse-data-model');
+      const { Op } = require('sequelize');
+      const links = await ClientManager.findAll({ where: { userId } });
+      if (links.length === 0) return { lists: [], total: 0 };
+      whereClause.clientId = { [Op.in]: links.map(l => l.clientId) };
+    } else {
+      throw new Error("clientId query parameter is required");
+    }
     
     const { count, rows } = await LeadList.findAndCountAll({
-      where: { clientId },
+      where: whereClause,
+       include: [
+        { model: require('leadpulse-data-model').Client, as: 'client', attributes: ['name'] },
+        { model: ImportJob, as: 'importJobs', separate: true, limit: 1, order: [['createdAt', 'DESC']] }
+      ],
       limit,
       offset,
       order: [['createdAt', 'DESC']]
     });
 
-    return { lists: rows, total: count };
+     const listIds = rows.map(r => r.id);
+    const { Sequence } = require('leadpulse-data-model');
+    const sequences = await Sequence.findAll({ where: { leadListId: listIds } });
+
+    const listsWithSequences = rows.map(list => {
+      const l = list.toJSON();
+      l.sequences = sequences.filter(s => s.leadListId === l.id);
+      return l;
+    });
+
+    return { lists: listsWithSequences, total: count };
   }
 
   async getLeadListById(userId, id) {

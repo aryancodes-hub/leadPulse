@@ -22,8 +22,8 @@ export default function ExecutiveQueueView({ activeCampaign, perfData, refreshDa
   const [currentLead, setCurrentLead] = useState(null);
 
   // Real Progress tracking synced with PostgreSQL
-  const completedCount = perfData?.totalCalls || 0;
-  const totalLeads = (perfData?.totalCalls || 0) + (perfData?.pendingQueueSize || 0);
+  const totalLeads = perfData?.totalAssignedLeads || 0;
+  const completedCount = Math.max(0, totalLeads - (perfData?.pendingQueueSize || 0));
 
   // Form State: Reverted back to CallRemarks ENUM
   const [form, setForm] = useState({
@@ -439,6 +439,7 @@ export default function ExecutiveQueueView({ activeCampaign, perfData, refreshDa
                         return d.toISOString().split("T")[0];
                       })()}
                       onChange={handledate}
+                      required
                       className="exec-text-input pr-10"
                     />
                   </div>

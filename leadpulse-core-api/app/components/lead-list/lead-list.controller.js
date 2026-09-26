@@ -1,4 +1,4 @@
-﻿const LeadListService = require('./lead-list.service');
+const LeadListService = require('./lead-list.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 
 class LeadListController {
@@ -100,11 +100,8 @@ class LeadListController {
    */
   async getLeadLists(req, res, next) {
     try {
-      // Assuming validateClientQuery middleware handles checking clientId presence if needed
       const clientId = req.query.clientId;
-      if (!clientId) throw new Error('clientId query parameter is required');
-
-      const { lists, total } = await this.leadListService.getLeadLists(req.user.id, clientId, req.pagination);
+      const { lists, total } = await this.leadListService.getLeadLists(req.user.id, clientId, req.pagination, req.user.role);
       
       const meta = {
         total,

@@ -163,7 +163,7 @@ function printConvertedLeadsReport({ sequence, leads = [] }) {
   }, 350);
 }
 
-export default function DeepDiveView() {
+export default function DeepDiveView({ clientId }) {
   const [sequences, setSequences] = useState();
   const [selectedSequence, setSelectedSequence] = useState(null);
   const [viewingCampaign, setViewingCampaign] = useState(null);
@@ -183,7 +183,7 @@ export default function DeepDiveView() {
     async function loadSequencesFromBackend() {
       try {
         setLoading(true);
-        const data = await getSequences();
+         const data = await getSequences(clientId ? { clientId } : {});
         if (Array.isArray(data) && data.length > 0 && isMounted) {
           setSequences(data);
         }

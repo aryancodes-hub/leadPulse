@@ -9,6 +9,8 @@ import ManagerDashboard from "@/components/for_manager/ManagerDashboard";
 import ManagerClients from "@/components/for_manager/ManagerClients";
 import ManagerExecutives from "@/components/for_manager/ManagerExecutives";
 import ManagerCampaigns from "@/components/for_manager/ManagerCampaigns";
+import ManagerLeadLists from "@/components/for_manager/ManagerLeadLists";
+import ProfileView from "@/components/ProfileView";
 
 export default function ManagerPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -17,7 +19,11 @@ export default function ManagerPage() {
     <AuthGuard allowedRoles={["manager", "campaign_manager"]}>
       <div className="mgr-spa-root flex h-screen overflow-hidden bg-slate-50">
         {/* Navigation Sidebar */}
-        <ManagerSidebar className="w-[260px] shrink-0 bg-[#0b1437] text-white flex flex-col border-r border-white/10 overflow-y-auto" activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ManagerSidebar
+          className="w-[260px] shrink-0 bg-[#0b1437] text-white flex flex-col border-r border-white/10 overflow-y-auto"
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
 
         {/* Main Viewport */}
         <div className="mgr-main-wrapper">
@@ -28,6 +34,8 @@ export default function ManagerPage() {
             {activeTab === "clients" && <ManagerClients />}
             {activeTab === "executives" && <ManagerExecutives />}
             {activeTab === "campaigns" && <ManagerCampaigns />}
+            {activeTab === "lead-lists" && <ManagerLeadLists />}
+            {activeTab === "profile" && <ProfileView />}
           </main>
         </div>
       </div>

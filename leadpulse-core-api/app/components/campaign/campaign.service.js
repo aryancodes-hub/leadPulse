@@ -12,6 +12,7 @@ const {
   MasterContact,
   Sequence,
   CallRemark,
+  ImportJob,
   sequelize
 } = require("leadpulse-data-model");
 const { ForbiddenError, NotFoundError, BadRequestError } = require("../../lib/error");
@@ -116,7 +117,7 @@ class CampaignService {
       throw new BadRequestError("clientId query parameter is required");
     }
 
-    const { count, rows } = await Campaign.findAndCountAll({
+        const { count, rows } = await Campaign.findAndCountAll({
       where: whereClause,
       limit,
       offset,
@@ -125,8 +126,8 @@ class CampaignService {
         {
           model: CampaignExecutive,
           as: "executives",
-          attributes: ["unassignedAt", "createdAt"],
-          where: { isActive: true },
+          // 🚀 FIX: Removed "where: { isActive: true }" and added "isActive" to attributes
+          attributes: ["unassignedAt", "createdAt", "isActive"], 
           required: false,
           include: [
             {
@@ -140,7 +141,7 @@ class CampaignService {
       order: [["createdAt", "DESC"]]
     });
 
-    // 🚀 NEW: Reshape data here instead of the controller!
+    // Reshape data here instead of the controller!
     const formattedCampaigns = rows.map((c) => {
       const cData = c.toJSON ? c.toJSON() : c;
       const status = cData.status
@@ -163,7 +164,7 @@ class CampaignService {
           id: ex.executive?.id,
           name: ex.executive?.fullName,
           email: ex.executive?.email,
-          status: ex.executive?.isActive ? "Active" : "Inactive",
+          status: ex.isActive ? "Assigned" : "Unassigned",
           assignedat: ex.createdAt,
           unassignedat: ex.unassignedAt
         }))

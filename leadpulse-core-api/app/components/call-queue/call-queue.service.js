@@ -6,6 +6,7 @@
   MasterContact,
   Campaign,
   ClientManager,
+  User,
   CampaignExecutive,
   sequelize
 } = require("leadpulse-data-model");
@@ -29,10 +30,13 @@ class CallQueueService {
     if (!nextLead) {
       nextLead = await CampaignLead.findOne({
         where: { campaignId, assignedExecutiveId: executiveId, status: "pending" },
-        include: [{
-          model: ClientLead, as: "clientLead",
-          include: [{ model: MasterContact, as: "masterContact" }]
-        }],
+        include: [
+          {
+            model: ClientLead,
+            as: "clientLead",
+            include: [{ model: MasterContact, as: "masterContact" }]
+          }
+        ],
         order: [["assignedAt", "ASC"]]
       });
     }
@@ -40,10 +44,13 @@ class CallQueueService {
     if (!nextLead) {
       nextLead = await CampaignLead.findOne({
         where: { campaignId, assignedExecutiveId: executiveId, status: "skipped" },
-        include: [{
-          model: ClientLead, as: "clientLead",
-          include: [{ model: MasterContact, as: "masterContact" }]
-        }],
+        include: [
+          {
+            model: ClientLead,
+            as: "clientLead",
+            include: [{ model: MasterContact, as: "masterContact" }]
+          }
+        ],
         // Order by oldest skipped first
         order: [["statusUpdatedAt", "ASC"]]
       });
@@ -90,27 +97,44 @@ class CallQueueService {
 
       let newQueueStatus = "called";
       if (callOutcome === "Converted") newQueueStatus = "completed";
-      if (["Busy", "Not_Answered"].includes(callOutcome)) newQueueStatus = "pending";
+      // if (["Callback_Requested"].includes(callOutcome)) {
+      //   newQueueStatus = "pending";
+      // }
 
-      await CampaignLead.update(
-        { status: newQueueStatus, statusUpdatedAt: new Date() },
-        { where: { campaignId, clientLeadId }, transaction: t }
-      );
+      const updatePayload = { status: newQueueStatus, statusUpdatedAt: new Date() };
+
+      if (newQueueStatus === "pending") {
+        updatePayload.assignedAt = new Date();
+      }
+
+      await CampaignLead.update(updatePayload, {
+        where: { campaignId, clientLeadId },
+        transaction: t
+      });
 
       const campaign = await Campaign.findByPk(campaignId, { transaction: t });
 
       // 🚀 Auto-update the master list for everything EXCEPT "Converted"
-      let mappedMembershipStatus = null; 
+      let mappedMembershipStatus = null;
 
-      if (callOutcome === 'Converted' || leadStatusUpdate === 'Converted') {
+      if (callOutcome === "Converted" || leadStatusUpdate === "Converted") {
         // DO NOTHING! Leave it strictly for the QA Manager to confirm
         mappedMembershipStatus = null;
-      } else if (leadStatusUpdate === 'Dead' || callOutcome === 'Not_Interested') {
-        mappedMembershipStatus = 'Dead';
-      } else if (['Callback Requested', 'Callback_Requested'].includes(callOutcome)) {
-        mappedMembershipStatus = 'Callback';
-      } else if (['Wrong Number', 'Not Answered', 'Left Voicemail', 'Wrong_Number', 'Not_Answered', 'Left_Voicemail'].includes(callOutcome)) {
-        mappedMembershipStatus = 'Unreachable';
+      } else if (leadStatusUpdate === "Dead" || callOutcome === "Not_Interested") {
+        mappedMembershipStatus = "Dead";
+      } else if (["Callback Requested", "Callback_Requested"].includes(callOutcome)) {
+        mappedMembershipStatus = "Callback";
+      } else if (
+        [
+          "Wrong Number",
+          "Not Answered",
+          "Left Voicemail",
+          "Wrong_Number",
+          "Not_Answered",
+          "Left_Voicemail"
+        ].includes(callOutcome)
+      ) {
+        mappedMembershipStatus = "Unreachable";
       }
 
       // If we have an auto-approved status, push it directly to the master table
@@ -155,14 +179,45 @@ class CallQueueService {
     const { limit, offset } = pagination;
     const { count, rows } = await CallRemark.findAndCountAll({
       where: { campaignId },
+      include: [
+        {
+          model: ClientLead,
+          as: "clientLead",
+          include: [{ model: MasterContact, as: "masterContact", attributes: ["firstName", "lastName", "company", "phone"] }]
+        },
+        {
+          model: User,
+          as: "executive",
+          attributes: ["fullName", "email"]
+        }
+      ],
       limit,
       offset,
       order: [["createdAt", "DESC"]]
     });
-    return { remarks: rows, total: count };
+
+    // 🚀 FIX: Flatten the payload to remove 90% of the JSON bloat
+    const flatRemarks = rows.map(r => {
+      const log = r.toJSON();
+      return {
+        id: log.id,
+        callOutcome: log.callOutcome,
+        callDurationMinutes: log.callDurationMinutes,
+        notes: log.notes,
+        followUpDate: log.followUpDate,
+        leadStatusUpdate: log.leadStatusUpdate,
+        createdAt: log.createdAt,
+        // Extract strictly what the UI needs
+        leadName: log.clientLead?.masterContact ? `${log.clientLead.masterContact.firstName} ${log.clientLead.masterContact.lastName}` : "Unknown Lead",
+        leadCompany: log.clientLead?.masterContact?.company || "-",
+        execName: log.executive?.fullName || "Unknown Executive"
+      };
+    });
+
+    return { remarks: flatRemarks, total: count };
   }
 
-    async confirmConversion(managerId, remarkId, conversionConfirmed) {
+  async confirmConversion(managerId, remarkId, conversionConfirmed) {
     // 🚀 FIX: We added "leadListId" to the attributes so we can target the master table
     const remark = await CallRemark.findByPk(remarkId, {
       include: [{ model: Campaign, as: "campaign", attributes: ["id", "clientId", "leadListId"] }]
@@ -187,31 +242,33 @@ class CallQueueService {
 
     // 🚀 FIX: Wrapped in a transaction to update both tables synchronously
     await sequelize.transaction(async (t) => {
-      
       // 1. Update the CallRemark audit log
-      await remark.update({
-        conversionConfirmed,
-        confirmedByUserId: managerId,
-        confirmedAt: new Date()
-      }, { transaction: t });
+      await remark.update(
+        {
+          conversionConfirmed,
+          confirmedByUserId: managerId,
+          confirmedAt: new Date()
+        },
+        { transaction: t }
+      );
 
       // 2. The Official QA Action -> Update the Master Table
       let finalMasterStatus;
       if (conversionConfirmed === true) {
-        finalMasterStatus = 'Converted';
+        finalMasterStatus = "Converted";
       } else {
         // Based on your rule: If a manager rejects the claim, the lead backed out. Mark as Dead.
-        finalMasterStatus = 'Dead';
+        finalMasterStatus = "Dead";
       }
 
       await LeadListMembership.update(
         { status: finalMasterStatus },
-        { 
-          where: { 
-            clientLeadId: remark.clientLeadId, 
-            leadListId: remark.campaign.leadListId 
-          }, 
-          transaction: t 
+        {
+          where: {
+            clientLeadId: remark.clientLeadId,
+            leadListId: remark.campaign.leadListId
+          },
+          transaction: t
         }
       );
     });

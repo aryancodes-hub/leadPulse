@@ -385,7 +385,7 @@ export default function ManagerCampaigns() {
       setCampaignExecs(fetchedExecs);
 
       if (fetchedExecs.length > 0) {
-        setSelectedExecToRemove(fetchedExecs[0].id);
+        setSelectedExecToRemove(fetchedExecs[0].executiveId);
       }
     } catch (err) {
       alert("Failed to fetch executives for this campaign.");
@@ -493,11 +493,19 @@ export default function ManagerCampaigns() {
 
                 <td>
                   <div className="flex flex-wrap gap-1">
-                    {cmp.executives.map((ex) => (
-                      <span key={ex.id} className="mgr-badge mgr-badge-purple">
-                        {ex.name || ex.fullName}
-                      </span>
-                    ))}
+                     {cmp.executives.map((ex) => {
+                      const isUnassigned = ex.status === "Unassigned";
+                      return (
+                        <span 
+                          key={ex.id} 
+                          className={`mgr-badge ${isUnassigned ? "bg-slate-100 text-slate-500 border border-slate-200" : "mgr-badge-purple"}`}
+                          style={isUnassigned ? { opacity: 0.75 } : {}}
+                          title={isUnassigned && ex.unassignedat ? `Unassigned on ${new Date(ex.unassignedat).toLocaleDateString()}` : "Active Assignment"}
+                        >
+                          {ex.name || ex.fullName}
+                        </span>
+                      );
+                    })}
                   </div>
                 </td>
 
@@ -515,7 +523,7 @@ export default function ManagerCampaigns() {
                         <CheckCircle size={12} /> Approve
                       </button>
                     )}
-                    {cmp.status !== "Draft" && (
+                     {cmp.status !== "Draft" && cmp.status !== "Completed" && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

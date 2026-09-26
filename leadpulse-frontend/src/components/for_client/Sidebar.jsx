@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { LayoutDashboard, Compass, LogOut } from "lucide-react";
+import { LayoutDashboard, Compass, LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { clearAccessToken } from "@/api/api";
 import api from "@/api/api";
@@ -55,6 +55,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       </div>
 
       <div className="client-sidebar-footer">
+         <button type="button" onClick={() => setActiveTab("profile")}
+          className={`client-nav-btn ${activeTab === "profile" ? "active" : ""} mb-2`} >
+          <User size={18} className="client-nav-icon" />
+          <span className="client-nav-title">PROFILE</span>
+        </button>
         <button type="button" onClick={handleLogout}
           className="client-nav-btn text-red-400 hover:text-red-300 hover:bg-red-900/20 mb-4" >
           <LogOut size={18} className="client-nav-icon" />

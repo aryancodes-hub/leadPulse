@@ -1,5 +1,5 @@
-﻿const UserService = require('./user.service');
-const { sendSuccess } = require('../../utils/response-wrapper');
+﻿const UserService = require("./user.service");
+const { sendSuccess } = require("../../utils/response-wrapper");
 
 class UserController {
   constructor() {
@@ -39,7 +39,7 @@ class UserController {
   async createUser(req, res, next) {
     try {
       const user = await this.userService.createUser(req.user.id, req.body);
-      return sendSuccess(res, user, 'Executive created successfully', null, 201);
+      return sendSuccess(res, user, "Executive created successfully", null, 201);
     } catch (error) {
       next(error);
     }
@@ -66,21 +66,29 @@ class UserController {
    *       200:
    *         description: A paginated list of executives
    */
-    async getUsers(req, res, next) {
+  async getUsers(req, res, next) {
     try {
-      const unassigned = req.query.unassigned === 'true';
-      const { users, total } = await this.userService.getUsers(req.user.id, req.pagination, unassigned);
-      
+      const unassigned = req.query.unassigned === "true";
+      const role = req.query.role || "executive";
+      const clientId = req.query.clientId;
+      const { users, total } = await this.userService.getUsers(
+        req.user.id,
+        req.pagination,
+        unassigned,
+        role,
+        clientId
+      );
+
       // Reshape data to strictly match the frontend UI expectations
-            // Reshape data to strictly match the frontend UI expectations
-      const formattedUsers = users.map(u => {
+      // Reshape data to strictly match the frontend UI expectations
+      const formattedUsers = users.map((u) => {
         const uData = u.toJSON ? u.toJSON() : u;
         return {
           id: uData.id,
           name: uData.fullName,
           email: uData.email,
-          assignedCampaign: uData.assignedCampaign || "Unassigned", 
-          activeCampaigns: uData.activeCampaigns || [],             
+          assignedCampaign: uData.assignedCampaign || "Unassigned",
+          activeCampaigns: uData.activeCampaigns || [],
           status: uData.isActive ? "Active" : "Inactive"
         };
       });
@@ -93,7 +101,7 @@ class UserController {
       };
 
       // Nest inside a 'users' object so data.users works on the frontend
-      return sendSuccess(res, { users: formattedUsers }, 'Users retrieved successfully', meta);
+      return sendSuccess(res, { users: formattedUsers }, "Users retrieved successfully", meta);
     } catch (error) {
       next(error);
     }
@@ -123,7 +131,7 @@ class UserController {
   async getUserById(req, res, next) {
     try {
       const user = await this.userService.getUserById(req.user.id, req.params.id);
-      return sendSuccess(res, user, 'Executive retrieved successfully');
+      return sendSuccess(res, user, "Executive retrieved successfully");
     } catch (error) {
       next(error);
     }
@@ -164,7 +172,7 @@ class UserController {
   async updateUser(req, res, next) {
     try {
       const user = await this.userService.updateUser(req.user.id, req.params.id, req.body);
-      return sendSuccess(res, user, 'Executive updated successfully');
+      return sendSuccess(res, user, "Executive updated successfully");
     } catch (error) {
       next(error);
     }

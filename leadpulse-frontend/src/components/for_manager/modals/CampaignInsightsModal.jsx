@@ -24,35 +24,36 @@ import OutcomeBadge from "@/components/shared/OutcomeBadge";
 // ─────────────────────────────────────────────────────────────
 export default function CampaignInsightsModal({ campaign, details = [], activeTab, setTab }) {
   const isCall = campaign.type === "Cold Call Blitz" || campaign.type === "call";
-  const total = campaign.executives.length;
-  const dettotal = details.length;
 
-  // ── Call Metrics ────────────────────────────────────────────
+  // 🚀 FIX: Renamed for sanity!
+  const execCount = campaign?.executives?.length || 0;
+  const logCount = details.length;
+  // 📞 Call Metrics
   const converted = details.filter((c) => c.callOutcome?.toLowerCase() === "converted").length;
-  const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
-  const totalTalkTime = details.reduce((acc, c) => acc + (Number(c.callDurationMinutes) || 0), 0);
-  const avgTalkTime = total > 0 ? (totalTalkTime / total).toFixed(1) : "0";
 
+  // 🚀 FIX: Now calculating based on the number of calls (logCount), not executives!
+  const conversionRate = logCount > 0 ? Math.round((converted / logCount) * 100) : 0;
+  const totalTalkTime = details.reduce((acc, c) => acc + (Number(c.callDurationMinutes) || 0), 0);
+  const avgTalkTime = logCount > 0 ? (totalTalkTime / logCount).toFixed(1) : "0";
   const callbackCalls = details.filter((c) => {
     const oc = (c.callOutcome || "").toLowerCase();
     return oc.includes("callback") || oc.includes("follow") || oc.includes("scheduled");
   }).length;
-
   const notReachedCalls = details.filter((c) => {
     const oc = (c.callOutcome || "").toLowerCase();
     return oc.includes("busy") || oc.includes("voicemail") || oc.includes("no_answer");
   }).length;
-
   const rejectedCalls = details.filter((c) => {
     const oc = (c.callOutcome || "").toLowerCase();
     return oc.includes("rejected") || oc.includes("declined") || oc.includes("wrong");
   }).length;
+  // ✉️ Email Metrics
+  const totalOpens = details.filter((d) => d.openCount > 0).length;
+  const totalClicks = details.filter((d) => d.clickCount > 0).length;
 
-  // ── Email Metrics ────────────────────────────────────────────
-  const totalOpens = details.reduce((acc, c) => acc + (Number(c.opens) || 0), 0);
-  const totalClicks = details.reduce((acc, c) => acc + (Number(c.clicks) || 0), 0);
-  const openRate = total > 0 ? ((totalOpens / total) * 100).toFixed(1) : "0.0";
-  const clickRate = total > 0 ? ((totalClicks / total) * 100).toFixed(1) : "0.0";
+  const openRate = logCount > 0 ? Math.round((totalOpens / logCount) * 100) : 0;
+  const clickRate = logCount > 0 ? Math.round((totalClicks / logCount) * 100) : 0;
+
   const clickToOpen = totalOpens > 0 ? ((totalClicks / totalOpens) * 100).toFixed(1) : "0.0";
   const unopened = details.filter((c) => !c.opens || c.opens === 0).length;
 
@@ -65,7 +66,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
   ];
 
   const emailFunnel = [
-    { label: "Sent", color: "#6366f1", bg: "#ede9fe", count: total },
+    { label: "Sent", color: "#6366f1", bg: "#ede9fe", count: execCount },
     { label: "Opened", color: "#10b981", bg: "#d1fae5", count: totalOpens },
     { label: "Clicked", color: "#0ea5e9", bg: "#e0f2fe", count: totalClicks }
   ];
@@ -169,8 +170,8 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
           >
             {tab.icon}
             {tab.label}
-            {(tab.key === "executive" && <span className="lp-tab-count">{total}</span>) ||
-              (tab.key === "log" && <span className="lp-tab-count">{dettotal}</span>)}
+            {(tab.key === "executive" && <span className="lp-tab-count">{execCount}</span>) ||
+              (tab.key === "log" && <span className="lp-tab-count">{logCount}</span>)}
           </button>
         ))}
       </div>
@@ -192,7 +193,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                 <>
                   <KpiCard
                     label="Total Calls"
-                    value={total}
+                    value={logCount}
                     subtext="logged activities"
                     icon={<PhoneCall size={13} color="white" />}
                     gradient="linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)"
@@ -220,7 +221,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                 <>
                   <KpiCard
                     label="Dispatched"
-                    value={dettotal}
+                    value={logCount}
                     subtext="outreach emails"
                     icon={<Mail size={13} color="white" />}
                     gradient="linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%)"
@@ -346,14 +347,14 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
             </div>
 
             {/* Breakdown bar chart */}
-            {total > 0 && (
+            {execCount > 0 && (
               <div className="lp-breakdown-card">
                 <div className="lp-breakdown-header">
                   <span className="lp-breakdown-title">
                     {isCall ? "Outcome Breakdown" : "Email Funnel"}
                   </span>
                   <span className="lp-breakdown-count">
-                    {total} {isCall ? "calls" : "emails"} total
+                    {execCount} {isCall ? "calls" : "emails"} execCount
                   </span>
                 </div>
 
@@ -364,7 +365,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                       <div
                         className="lp-bar-fill"
                         style={{
-                          width: total > 0 ? `${(seg.count / total) * 100}%` : "0%",
+                          width: execCount > 0 ? `${(seg.count / execCount) * 100}%` : "0%",
                           background: seg.color
                         }}
                       />
@@ -378,7 +379,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
             )}
 
             {/* Empty analytics state */}
-            {total === 0 && (
+            {execCount === 0 && (
               <div className="lp-empty-state">
                 <div className="lp-empty-icon-wrap">
                   <Inbox size={22} color="#7c3aed" />
@@ -397,7 +398,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
         {/* ── LOG TAB ───────────────────────────────────────── */}
         {activeTab === "log" && (
           <>
-            {dettotal === 0 ? (
+            {logCount === 0 ? (
               <div className="lp-empty-state">
                 <div className="lp-empty-icon-wrap">
                   <Inbox size={22} color="#7c3aed" />
@@ -416,6 +417,8 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                     <tr>
                       {isCall ? (
                         <>
+                          <th>Executive</th>
+                          <th>Lead Details</th>
                           <th>Outcome</th>
                           <th>Duration</th>
                           <th>Notes</th>
@@ -437,6 +440,24 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                       <tr key={i}>
                         {isCall ? (
                           <>
+                            <td
+                              style={{
+                                whiteSpace: "nowrap",
+                                fontWeight: 600,
+                                fontSize: 13,
+                                color: "#1e293b"
+                              }}
+                            >
+                              {detail.execName}
+                            </td>
+                            <td style={{ whiteSpace: "nowrap" }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: "#0f172a" }}>
+                                {detail.leadName}
+                              </div>
+                              <div style={{ fontSize: 11, color: "#64748b" }}>
+                                {detail.leadCompany}
+                              </div>
+                            </td>
                             {/* Outcome badge */}
                             <td style={{ whiteSpace: "nowrap" }}>
                               <OutcomeBadge type="outcome" value={detail.callOutcome} />
@@ -635,7 +656,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
         {/* ── Exec data TAB ───────────────────────────────────────── */}
         {activeTab === "executive" && (
           <>
-            {total === 0 ? (
+            {execCount === 0 ? (
               <div className="lp-empty-state">
                 <div className="lp-empty-icon-wrap">
                   <Inbox size={22} color="#7c3aed" />
@@ -646,7 +667,7 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                 </p>
               </div>
             ) : (
-              <div className="lp-log-table-wrap">
+                            <div className="lp-log-table-wrap">
                 <table className="lp-log-table">
                   <thead>
                     <tr>
@@ -654,7 +675,8 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                         <th>S.NO.</th>
                         <th>Executive</th>
                         <th className="center">Status</th>
-                        <th>Assigned At</th>
+                        {/* 🚀 Changed to Timeline to fit both dates */}
+                        <th>Timeline</th>
                       </>
                     </tr>
                   </thead>
@@ -665,32 +687,14 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                           {/* Recipient with avatar */}
                           <td>{i + 1}</td>
                           <td>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 9
-                              }}
-                            >
+                            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                               <AvatarInitial name={detail.name || detail.email} index={i} />
                               <div>
-                                <div
-                                  style={{
-                                    fontWeight: 700,
-                                    color: "#1e293b",
-                                    fontSize: 12
-                                  }}
-                                >
+                                <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 12 }}>
                                   {detail.name ? `${detail.name}`.trim() : detail.email}
                                 </div>
                                 {detail.name && (
-                                  <div
-                                    style={{
-                                      fontSize: 10,
-                                      color: "#94a3b8",
-                                      fontFamily: "monospace"
-                                    }}
-                                  >
+                                  <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "monospace" }}>
                                     {detail.email}
                                   </div>
                                 )}
@@ -698,31 +702,42 @@ export default function CampaignInsightsModal({ campaign, details = [], activeTa
                             </div>
                           </td>
 
-                          {/* Email status badge */}
+                          {/* 🚀 Safe Status Badge for Assigned/Unassigned */}
                           <td className="center" style={{ whiteSpace: "nowrap" }}>
-                            <OutcomeBadge type="emailStatus" value={detail.status} />
+                            <span style={{ 
+                              display: "inline-flex",
+                              padding: "2px 8px", 
+                              borderRadius: "12px", 
+                              fontSize: "10px", 
+                              fontWeight: 700, 
+                              backgroundColor: detail.status === "Assigned" ? "#dcfce7" : "#f1f5f9",
+                              color: detail.status === "Assigned" ? "#166534" : "#64748b",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px"
+                            }}>
+                              {detail.status}
+                            </span>
                           </td>
 
-                          {/* Exec Assigned at */}
-                          <td
-                            style={{
-                              fontSize: 13,
-                              fontFamily: "monospace",
-                              color: "#64748b",
-                              whiteSpace: "nowrap"
-                            }}
-                          >
-                            <span>
+                          {/* 🚀 Timeline Column (Shows IN and OUT dates) */}
+                          <td style={{ fontSize: 11, fontFamily: "monospace", color: "#475569", whiteSpace: "nowrap" }}>
+                            <div style={{ marginBottom: 4 }}>
+                              <strong style={{ color: "#94a3b8", marginRight: 4 }}>IN:</strong> 
                               {detail.assignedat
                                 ? new Date(detail.assignedat).toLocaleString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit"
+                                    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
                                   })
-                                : "Not assigned yet"}
-                            </span>
+                                : "N/A"}
+                            </div>
+                            
+                            {detail.status === "Unassigned" && detail.unassignedat && (
+                              <div>
+                                <strong style={{ color: "#94a3b8", marginRight: 4 }}>OUT:</strong>
+                                {new Date(detail.unassignedat).toLocaleString("en-US", {
+                                  month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+                                })}
+                              </div>
+                            )}
                           </td>
                         </>
                       </tr>

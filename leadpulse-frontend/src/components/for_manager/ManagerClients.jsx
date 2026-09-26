@@ -1,9 +1,11 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, Upload, Power } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Upload, Power, Eye } from "lucide-react";
 import ModalShell from "@/components/for_manager/modals/ModalShell";
 import api from "@/api/api";
+import DeepDiveView from "@/components/for_client/DeepDiveView";
+import "@/app/(dashboard)/client/client.css";
 
 export default function ManagerClients() {
    const { user } = useAuth(); 
@@ -12,6 +14,7 @@ export default function ManagerClients() {
   const [page, setPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+    const [deepDiveClient, setDeepDiveClient] = useState(null);
   const [newClientName, setNewClientName] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
    const [newContactPerson, setNewContactPerson] = useState("");
@@ -19,6 +22,18 @@ export default function ManagerClients() {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadListName, setUploadListName] = useState(""); // Add this line
   const [uploadStatus, setUploadStatus] = useState("");
+
+   // Client Contacts State
+  const [clientUsers, setClientUsers] = useState([]);
+  const [newContactEmail, setNewContactEmail] = useState("");
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPassword, setNewContactPassword] = useState("");
+  const [showAddContact, setShowAddContact] = useState(false);
+
+  // Lead Lists State
+  const [leadLists, setLeadLists] = useState([]);
+
+
   const limit = 10;
   const totalPages = Math.ceil(clients.length / limit) || 1;
   const paginatedClients = clients.slice((page - 1) * limit, page * limit);
@@ -32,6 +47,69 @@ export default function ManagerClients() {
       })
       .catch((err) => console.log("Using clients list mock", err));
   }, [page]);
+
+  useEffect(() => {
+    if (selectedClient) {
+      api.get(`/users?role=client&clientId=${selectedClient.id}`)
+        .then(res => setClientUsers(res.data?.data?.users || []))
+        .catch(err => console.error("Failed to load client users"));
+        fetchLeadLists();
+    }
+  }, [selectedClient]);
+
+   const fetchLeadLists = () => {
+    if(!selectedClient) return;
+    api.get(`/lead-lists?clientId=${selectedClient.id}`)
+      .then(res => setLeadLists(res.data?.data || []))
+      .catch(err => console.error("Failed to load lead lists"));
+  };
+
+  useEffect(() => {
+    const hasActiveJobs = leadLists.some(list => {
+      const status = list.importJobs?.[0]?.status;
+      return status === "Uploaded" || status === "Queued" || status === "Processing";
+    });
+    
+    let interval;
+    if (hasActiveJobs && selectedClient) {
+      interval = setInterval(() => {
+        fetchLeadLists();
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [leadLists, selectedClient]);
+
+  const handleAddContact = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post("/users", {
+        fullName: newContactName,
+        email: newContactEmail,
+        password: newContactPassword,
+        role: "client",
+        clientId: selectedClient.id
+      });
+      const res = await api.get(`/users?role=client&clientId=${selectedClient.id}`);
+      setClientUsers(res.data?.data?.users || []);
+      setShowAddContact(false);
+      setNewContactName("");
+      setNewContactEmail("");
+      setNewContactPassword("");
+    } catch(err) {
+      alert(err.response?.data?.error?.message || "Failed to add contact");
+    }
+  };
+
+  const handleRemoveContact = async (userId) => {
+    if(!window.confirm("Are you sure you want to remove this contact?")) return;
+    try {
+      await api.patch(`/users/${userId}`, { isActive: false });
+      const res = await api.get(`/users?role=client&clientId=${selectedClient.id}`);
+      setClientUsers(res.data?.data?.users || []);
+    } catch(err) {
+      alert("Failed to remove contact");
+    }
+  };
 
   // Endpoint #12: POST /api/v1/clients
       const handleCreateClient = async (e) => {
@@ -111,12 +189,29 @@ export default function ManagerClients() {
       setUploadStatus("Upload complete! Background import service started.");
       setUploadListName(""); // reset form
       setUploadFile(null);
+       fetchLeadLists();
     } catch (error) {
       console.error("Upload failed", error);
       const msg = error.response?.data?.error?.message || error.response?.data?.message || "Upload failed";
       setUploadStatus(`Error: ${msg}`);
     }
   };
+
+   if (deepDiveClient) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setDeepDiveClient(null)} className="mgr-btn mgr-btn-outline">
+            <ChevronLeft size={16} /> Back to Clients
+          </button>
+          <div className="font-extrabold text-lg text-slate-800">
+            Deep Dive: {deepDiveClient.name}
+          </div>
+        </div>
+        <DeepDiveView clientId={deepDiveClient.id} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -154,15 +249,26 @@ export default function ManagerClients() {
                   </span>
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleStatus(client.id, client.status);
-                    }}
-                    className={`mgr-btn ${client.status === "Active" ? "mgr-btn-red" : "mgr-btn-outline"} text-xs py-1`}
-                  >
-                    <Power size={12} /> {client.status === "Active" ? "Pause" : "Activate"}
-                  </button>
+            <div className="flex justify-end gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeepDiveClient(client);
+                      }}
+                      className="mgr-btn mgr-btn-purple text-xs py-1"
+                    >
+                      <Eye size={12} /> Deep Dive
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleStatus(client.id, client.status);
+                      }}
+                      className={`mgr-btn ${client.status === "Active" ? "mgr-btn-red" : "mgr-btn-outline"} text-xs py-1`}
+                    >
+                      <Power size={12} /> {client.status === "Active" ? "Pause" : "Activate"}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -383,6 +489,130 @@ export default function ManagerClients() {
                   </div>
                 )}
               </div>
+
+                   {/* Lead Lists & Import Jobs */}
+              <div style={{
+                background: "white", border: "1px solid #e2e8f0",
+                borderRadius: 14, padding: "20px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <div style={{ padding: 8, background: "#f1f5f9", borderRadius: 10, display: "flex" }}>
+                    <Upload size={18} color="#475569" />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>Lead Lists & Import History</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 350, overflowY: "auto" }}>
+                  {leadLists.map(list => {
+                    const job = list.importJobs?.[0];
+                    const seqNames = list.sequences?.map(s => s.name).join(", ") || "No sequences attached";
+                    return (
+                      <div key={list.id} style={{ display: "flex", flexDirection: "column", gap: 8, padding: "16px", border: "1px solid #e2e8f0", borderRadius: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{list.name}</div>
+                            <div style={{ fontSize: 11, color: "#64748b", marginTop: 4, fontWeight: 600 }}>Sequences: {seqNames}</div>
+                          </div>
+                          {job && (
+                            <div style={{ textAlign: "right" }}>
+                              <span style={{ 
+                                fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 12, 
+                                background: job.status === "Completed" ? "#dcfce7" : (job.status === "Failed" ? "#fef2f2" : "#fef9c3"),
+                                color: job.status === "Completed" ? "#166534" : (job.status === "Failed" ? "#991b1b" : "#854d0e")
+                              }}>
+                                {job.status.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {job && (
+                          <div style={{ marginTop: 8, padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 11, color: "#475569", fontWeight: 600 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                              <span>Total Leads: {job.totalRows || 0}</span>
+                              <span>{Math.round(job.progressPercentage || 0)}% Complete</span>
+                            </div>
+                            <div style={{ width: "100%", height: 6, background: "#e2e8f0", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+                              <div style={{ width: `${job.progressPercentage || 0}%`, height: "100%", background: job.status === "Failed" ? "#ef4444" : "#10b981", transition: "width 0.3s" }} />
+                            </div>
+                            <div style={{ display: "flex", gap: 16 }}>
+                              <span style={{ color: "#166534" }}>{job.successfulRows || 0} Processed</span>
+                              {job.failedRows > 0 && <span style={{ color: "#991b1b" }}>{job.failedRows} Failed</span>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {leadLists.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "30px", color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+                      No lead lists imported yet. Use the uploader above to create one!
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Client Contacts */}
+              <div style={{
+                background: "white", border: "1px solid #e2e8f0",
+                borderRadius: 14, padding: "20px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ padding: 8, background: "#f1f5f9", borderRadius: 10, display: "flex" }}>
+                      <Eye size={18} color="#475569" />
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>Client Access Accounts</span>
+                  </div>
+                  <button onClick={() => setShowAddContact(!showAddContact)} className="mgr-btn mgr-btn-outline text-xs">
+                    <Plus size={14} /> Add User
+                  </button>
+                </div>
+
+                {showAddContact && (
+                  <form onSubmit={handleAddContact} style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20, padding: 16, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                    <div className="lp-form-group">
+                      <label className="lp-form-label">Full Name</label>
+                      <input type="text" required value={newContactName} onChange={e => setNewContactName(e.target.value)} className="lp-form-input" />
+                    </div>
+                    <div className="lp-form-group">
+                      <label className="lp-form-label">Email Address</label>
+                      <input type="email" required value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="lp-form-input" />
+                    </div>
+                    <div className="lp-form-group">
+                      <label className="lp-form-label">Temporary Password</label>
+                      <input type="text" required value={newContactPassword} onChange={e => setNewContactPassword(e.target.value)} className="lp-form-input" />
+                    </div>
+                    <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                      <button type="submit" className="mgr-btn mgr-btn-purple flex-1 justify-center">Create User</button>
+                      <button type="button" onClick={() => setShowAddContact(false)} className="mgr-btn mgr-btn-outline">Cancel</button>
+                    </div>
+                  </form>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+                  {clientUsers.map(u => (
+                    <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: "1px solid #e2e8f0", borderRadius: 10, opacity: u.status === "Active" ? 1 : 0.5 }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{u.name}</div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>{u.email}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 12, background: u.status === "Active" ? "#dcfce7" : "#f1f5f9", color: u.status === "Active" ? "#166534" : "#475569" }}>{u.status}</span>
+                        {u.status === "Active" && (
+                          <button onClick={() => handleRemoveContact(u.id)} className="text-red-500 hover:text-red-700" title="Revoke Access">
+                            <Power size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {clientUsers.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "20px", color: "#64748b", fontSize: 12, fontWeight: 600 }}>No users found</div>
+                  )}
+                </div>
+              </div>
+
 
             </div>
           </>

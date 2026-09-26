@@ -9,7 +9,7 @@ const {
   Client,
   ClientLead,
   MasterContact,
-  LeadListMembership, 
+  LeadListMembership,
   LeadList,
   EmailProcessingJob,
   sequelize
@@ -58,13 +58,13 @@ class DashboardService {
         {
           model: LeadList,
           as: "leadList",
-          required: true, 
+          required: true,
           include: [
             {
               model: LeadListMembership,
               as: "members",
               where: { status: "Converted" },
-              required: true 
+              required: true
             }
           ]
         }
@@ -77,7 +77,7 @@ class DashboardService {
     for (const campaign of campaigns) {
       const cName = campaign.client?.name || "Unknown Client";
       if (!clientCounts[cName]) clientCounts[cName] = 0;
-      
+
       const members = campaign.leadList?.members || [];
       for (const m of members) {
         if (!uniqueConversions.has(m.id)) {
@@ -112,12 +112,12 @@ class DashboardService {
           include: [{ model: MasterContact, as: "masterContact" }]
         }
       ],
-      order: [["createdAt", "ASC"]] 
+      order: [["createdAt", "ASC"]]
     });
-    
+
     const pendingApprovals = pendingData.map((r) => ({
-      id: r.id.substring(0, 8), 
-      fullId: r.id, 
+      id: r.id.substring(0, 8),
+      fullId: r.id,
       execName: r.executive?.fullName || "Unknown Exec",
       leadName: r.clientLead?.masterContact
         ? `${r.clientLead.masterContact.firstName} ${r.clientLead.masterContact.lastName}`
@@ -136,7 +136,7 @@ class DashboardService {
       conversionsByClient,
       totalDials,
       emailOpenRate: openRate,
-      pendingApprovals 
+      pendingApprovals
     };
   }
 
@@ -158,56 +158,101 @@ class DashboardService {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
+    const executiveInfo = await User.findByPk(executiveUserId, {
+      attributes: ["fullName", "email"]
+    });
+
+    // 🚀 STEP 1: Hoist the Campaign Assignment Logic to the TOP
+    let assignments = await CampaignExecutive.findAll({
+      where: { executiveUserId, isActive: true },
+      include: [
+        { model: Campaign, as: "campaign", attributes: ["id", "name", "type", "description"] }
+      ],
+      order: [["createdAt", "DESC"]]
+    });
+    
+    let isUnassigned = false;
+    if (assignments.length === 0) {
+      assignments = await CampaignExecutive.findAll({
+        where: { executiveUserId },
+        include: [
+          { model: Campaign, as: "campaign", attributes: ["id", "name", "type", "description"] }
+        ],
+        order: [["createdAt", "DESC"]],
+        limit: 1
+      });
+      isUnassigned = true;
+    }
+
+    const activeCampaign = assignments.length > 0 ? assignments[0].campaign : null;
+    const targetCampaignId = activeCampaign ? activeCampaign.id : null;
+
+    // If the executive has literally never been assigned to a campaign, return empty data
+    if (!targetCampaignId) {
+      return {
+        totalCalls: 0,
+        pendingQueueSize: 0,
+        totalAssignedLeads: 0,
+        conversionsToday: 0,
+        disqualifiedCount: 0,
+        inReviewCount: 0,
+        inReviewValue: 0,
+        confirmedEarnings: 0,
+        activeCampaign: null,
+        isUnassigned: true,
+        executiveDetails: executiveInfo ? { fullName: executiveInfo.fullName, email: executiveInfo.email } : null,
+        callLogs: []
+      };
+    }
+
+    // 🚀 STEP 2: Inject "campaignId: targetCampaignId" into EVERY query!
+
     // 1. Basic Metrics
-    const totalCalls = await CallRemark.count({ where: { executiveUserId } });
+    const totalCalls = await CallRemark.count({ 
+      where: { executiveUserId, campaignId: targetCampaignId } 
+    });
 
     const pendingQueueSize = await CampaignLead.count({
       where: {
         assignedExecutiveId: executiveUserId,
+        campaignId: targetCampaignId,
         status: { [Op.in]: ["pending", "in_progress", "skipped"] }
       }
+    });
+
+    const totalAssignedLeads = await CampaignLead.count({
+      where: { assignedExecutiveId: executiveUserId, campaignId: targetCampaignId }
     });
 
     // 2. Performance Metrics
     const conversionsToday = await CallRemark.count({
       where: {
         executiveUserId,
+        campaignId: targetCampaignId,
         callOutcome: "Converted",
         createdAt: { [Op.gte]: startOfDay }
       }
     });
 
     const disqualifiedCount = await CallRemark.count({
-      where: { executiveUserId, callOutcome: "Not_Interested" }
+      where: { executiveUserId, campaignId: targetCampaignId, callOutcome: "Not_Interested" }
     });
 
     // 3. Approval & Financial Tracking (In Review vs Confirmed)
     const inReviewCount = await CallRemark.count({
-      where: { executiveUserId, callOutcome: "Converted", confirmedByUserId: null }
+      where: { executiveUserId, campaignId: targetCampaignId, callOutcome: "Converted", confirmedByUserId: null }
     });
 
     const approvedCount = await CallRemark.count({
-      where: { executiveUserId, callOutcome: "Converted", confirmedByUserId: { [Op.not]: null } }
+      where: { executiveUserId, campaignId: targetCampaignId, callOutcome: "Converted", confirmedByUserId: { [Op.not]: null } }
     });
 
     // Assume an average default rate of $50 per conversion if not strictly tied to a campaign rate
     const AVG_CONVERSION_RATE = 50;
 
-    const executiveInfo = await User.findByPk(executiveUserId, {
-      attributes: ["fullName", "email"]
-    });
-
-    const assignments = await CampaignExecutive.findAll({
-      where: { executiveUserId, isActive: true },
-      include: [
-        { model: Campaign, as: "campaign", attributes: ["id", "name", "type", "description"] }
-      ]
-    });
-    const activeCampaign = assignments.length > 0 ? assignments[0].campaign : null;
-
-    // 1. Fetch recent general call history
+    // 4. Fetch recent general call history scoped to this specific campaign
     const recentCallLogs = await CallRemark.findAll({
-      where: { executiveUserId },
+      where: { executiveUserId, campaignId: targetCampaignId },
       include: [
         {
           model: ClientLead,
@@ -219,10 +264,11 @@ class DashboardService {
       limit: 100
     });
 
-    // 2. 🚀 Fetch ALL Scheduled Callbacks (ignores the 100 limit so they never disappear)
+    // 5. Fetch ALL Scheduled Callbacks for this campaign
     const scheduledCallbacks = await CallRemark.findAll({
       where: {
         executiveUserId,
+        campaignId: targetCampaignId,
         callOutcome: "Callback_Requested"
       },
       include: [
@@ -236,13 +282,13 @@ class DashboardService {
       order: [["followUpDate", "ASC"]]
     });
 
-    // 3. Merge them and remove duplicates (in case a callback was made in the last 100 calls)
+    // 6. Merge them and remove duplicates (in case a callback was made in the last 100 calls)
     const uniqueLogsMap = new Map();
     recentCallLogs.forEach((log) => uniqueLogsMap.set(log.id, log));
     scheduledCallbacks.forEach((log) => uniqueLogsMap.set(log.id, log));
     const mergedLogsData = Array.from(uniqueLogsMap.values());
 
-    // 4. Map to frontend requirements
+    // 7. Map to frontend requirements
     const callLogs = mergedLogsData.map((row) => ({
       id: row.id,
       leadName: row.clientLead?.masterContact
@@ -254,19 +300,23 @@ class DashboardService {
       duration: row.callDurationMinutes,
       timestamp: row.createdAt.toLocaleString(),
       followUpDate: row.followUpDate ? new Date(row.followUpDate).toLocaleDateString() : null,
+
       notes: row.notes,
       status: row.leadStatusUpdate || "Contacted"
     }));
-    // STRICT FRONTEND MAPPING: This perfectly matches the ExecutiveDashboardView.jsx expectations
+
+    // STRICT FRONTEND MAPPING
     return {
       totalCalls,
       pendingQueueSize,
+      totalAssignedLeads,
       conversionsToday,
       disqualifiedCount,
       inReviewCount,
       inReviewValue: inReviewCount * AVG_CONVERSION_RATE,
       confirmedEarnings: approvedCount * AVG_CONVERSION_RATE,
       activeCampaign,
+      isUnassigned,
       executiveDetails: executiveInfo
         ? {
             fullName: executiveInfo.fullName,
@@ -330,14 +380,12 @@ class DashboardService {
       totalCampaigns
     };
   }
-    async getEmailDashboard(userId, campaignId) {
+  async getEmailDashboard(userId, campaignId) {
     // 1. Fetch Basic Campaign Details
     const campaign = await Campaign.findOne({
       where: { id: campaignId },
       attributes: ["id", "name", "status", "type", "dispatchStatus"],
-      include: [
-        { model: Client, as: "client", attributes: ["name"] }
-      ]
+      include: [{ model: Client, as: "client", attributes: ["name"] }]
     });
 
     if (!campaign) throw new Error("Campaign not found");
@@ -353,9 +401,14 @@ class DashboardService {
       where: { campaignId },
       include: [
         {
-          model: ClientLead, as: "clientLead",
+          model: ClientLead,
+          as: "clientLead",
           include: [
-            { model: MasterContact, as: "masterContact", attributes: ["firstName", "lastName", "email"] }
+            {
+              model: MasterContact,
+              as: "masterContact",
+              attributes: ["firstName", "lastName", "email"]
+            }
           ]
         }
       ],
@@ -386,13 +439,15 @@ class DashboardService {
         status: campaign.status,
         dispatchStatus: campaign.dispatchStatus
       },
-      job: job ? {
+      job: job
+        ? {
             status: job.status,
             totalEmails: job.totalEmails || 0,
             processedEmails: job.processedEmails || 0,
             successfulSends: job.successfulSends || 0,
             failedSends: job.failedSends || 0
-          } : null,
+          }
+        : null,
       logs: formattedLogs
     };
   }

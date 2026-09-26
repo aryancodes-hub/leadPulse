@@ -26,11 +26,8 @@ export async function getExecutivePerformance() {
     }
 }
 
-export async function getClientPortal() {
-    const response =
-        await api.get(
-            "/dashboards/client-portal"
-        );
-
+export async function getClientPortal(clientId) {
+    const url = clientId ? `/dashboards/client-portal?clientId=${clientId}` : `/dashboards/client-portal`;
+    const response = await api.get(url);
     return getData(response);
 }
