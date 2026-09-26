@@ -251,12 +251,12 @@ export default function ManagerCampaigns() {
 
   // Endpoint #32: POST /api/v1/campaigns/:id/approve
   // Change parameter from cmpId to cmp
-  const handleApproveCampaign = async (cmp) => {
+    const handleApproveCampaign = async (cmp) => {
     try {
       // Step 1: Approve the campaign
       await api.post(`/campaigns/${cmp.id}/approve`);
 
-      // Step 2: Auto-chain email dispatch if applicable
+      // Step 2: Auto-chain operations based on campaign type
       if (cmp.type === "Email Sequence Drip" || cmp.type === "email") {
         try {
           await api.post(`/campaigns/${cmp.id}/dispatch-email`);
@@ -265,16 +265,21 @@ export default function ManagerCampaigns() {
           alert("Campaign Approved, but email dispatch failed. Check backend.");
         }
       } else {
-        alert("Call Campaign Approved successfully!");
+        // 🚀 FIXED: Auto-distribute leads to executives upon approval!
+        try {
+          await api.post(`/campaigns/${cmp.id}/assign-leads`, { method: "round_robin" });
+          alert("Call Campaign Approved and Leads Distributed successfully!");
+        } catch (assignErr) {
+          alert("Call Campaign Approved, but lead distribution failed.");
+        }
       }
-
-      // Update UI Status
-      setCampaigns((prev) => prev.map((c) => (c.id === cmp.id ? { ...c, status: "Active" } : c)));
+      
+      // Refresh list to show new status
+      const refreshRes = await api.get(`/campaigns?page=${page}&limit=${limit}`);
+      setCampaigns(refreshRes.data?.data?.campaigns || []);
+      
     } catch (e) {
-      // Extract the beautiful backend error message if it fails!
-      const msg =
-        e.response?.data?.error?.message || e.response?.data?.message || "Approval failed";
-      alert(`Cannot Approve: ${msg}`);
+      alert(e.response?.data?.message || "Failed to approve campaign");
     }
   };
 
@@ -522,9 +527,8 @@ export default function ManagerCampaigns() {
                         {cmp.status === "Active" ? "Pause" : "Resume"}
                       </button>
                     )}
-                                        {/* End Campaign Button (Email Campaigns Only) */}
-                    {(cmp.type === "Email Sequence Drip" || cmp.type === "email") && 
-                     (cmp.status === "Active" || cmp.status === "Paused") && (
+                    {/* End Campaign Button (Email Campaigns Only) */}
+                    {(cmp.status === "Active" || cmp.status === "Paused") && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

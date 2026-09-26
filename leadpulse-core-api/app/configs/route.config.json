@@ -228,7 +228,7 @@
   {
     "method": "get",
     "middlewareNameList": ["authenticate"],
-    "controller": "campaign",
+    "controller": "dashboard",
     "action": "getEmailDashboard",
     "route": "/api/v1/campaigns/:id/email-dashboard"
   },

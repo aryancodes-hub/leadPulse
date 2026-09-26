@@ -87,45 +87,16 @@ class CampaignService {
 
     return await sequelize.transaction(async (t) => {
       data.createdByUserId = userId;
+
+      // This saves the Draft, including the sequenceId and leadListId!
       const campaign = await Campaign.create(data, { transaction: t });
 
-      let whereClause = { leadListId: data.leadListId };
-
-      // 1. Sequence-Level Check
-      if (campaign.excludeClosedLeads) {
-        whereClause.status = { [Op.ne]: "Converted" };
-      }
-
-      // 2. Global Client-Level Check
-      if (campaign.requiresNetNewLeads) {
-        whereClause.clientLeadId = {
-          [Op.notIn]: sequelize.literal(`(
-            SELECT client_lead_id 
-            FROM lead_list_memberships 
-            WHERE status = 'Converted'
-          )`)
-        };
-      }
-
-      const members = await LeadListMembership.findAll({
-        where: whereClause,
-        transaction: t
-      });
-
-      if (members.length > 0) {
-        const campaignLeads = members.map((m) => ({
-          campaignId: campaign.id,
-          clientLeadId: m.clientLeadId,
-          status: "pending"
-        }));
-        await CampaignLead.bulkCreate(campaignLeads, { transaction: t, ignoreDuplicates: true });
-      }
-
+      // We STOP here. No leads are copied into CampaignLeads yet.
       return campaign;
     });
   }
 
-    async getCampaigns(userId, clientId, pagination, role) {
+  async getCampaigns(userId, clientId, pagination, role) {
     const { limit, offset } = pagination;
     let whereClause = {};
 
@@ -172,13 +143,20 @@ class CampaignService {
     // 🚀 NEW: Reshape data here instead of the controller!
     const formattedCampaigns = rows.map((c) => {
       const cData = c.toJSON ? c.toJSON() : c;
-      const status = cData.status ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1) : "Draft";
-      const type = cData.type === "call" ? "Cold Call Blitz" : cData.type === "email" ? "Email Sequence Drip" : cData.type;
+      const status = cData.status
+        ? cData.status.charAt(0).toUpperCase() + cData.status.slice(1)
+        : "Draft";
+      const type =
+        cData.type === "call"
+          ? "Cold Call Blitz"
+          : cData.type === "email"
+            ? "Email Sequence Drip"
+            : cData.type;
 
       return {
         id: cData.id,
-        name: cData.name, 
-        clientName: cData.client?.name || cData.clientId, 
+        name: cData.name,
+        clientName: cData.client?.name || cData.clientId,
         type: type,
         status: status,
         executives: (cData.executives || []).map((ex) => ({
@@ -232,7 +210,7 @@ class CampaignService {
     if (campaign.status !== "draft") {
       throw new BadRequestError("Only draft campaigns can be deleted");
     }
-      
+
     await campaign.destroy();
     return true;
   }
@@ -243,6 +221,27 @@ class CampaignService {
     if (campaign.status !== "draft") {
       throw new BadRequestError("Only draft campaigns can be approved");
     }
+
+    // 1. GATEKEEPER: Ensure the background import is totally finished
+    const pendingImports = await ImportJob.count({
+      where: { leadListId: campaign.leadListId, status: { [Op.in]: ["Uploaded", "Processing"] } }
+    });
+    if (pendingImports > 0) {
+      throw new BadRequestError(
+        "Cannot approve yet. The attached Lead List is still being processed in the background."
+      );
+    }
+
+    const totalLeads = await LeadListMembership.count({
+      where: { leadListId: campaign.leadListId }
+    });
+    if (totalLeads === 0) {
+      throw new BadRequestError(
+        "Cannot approve. The attached Lead List is empty (the import failed or the CSV had zero rows)."
+      );
+    }
+
+    // 2. Executive Validation (For Call Campaigns)
     if (campaign.type === "call") {
       const execCount = await CampaignExecutive.count({
         where: { campaignId: id, isActive: true }
@@ -253,91 +252,53 @@ class CampaignService {
         );
       }
     }
-    await campaign.update({
-      approvedByUserId: userId,
-      approvedAt: new Date(),
-      status: "active"
-    });
-    return campaign;
-  }
 
-  async getEmailDashboard(userId, campaignId) {
-    // 1. Fetch Basic Campaign Details
-    const campaign = await Campaign.findOne({
-      where: { id: campaignId },
-      attributes: ["id", "name", "status", "type", "dispatchStatus"],
-      include: [
+    // 3. COPY THE LEADS! (This is the code we took out of createCampaign)
+    return await sequelize.transaction(async (t) => {
+      let whereClause = { leadListId: campaign.leadListId };
+
+      // Sequence-Level Check
+      if (campaign.excludeClosedLeads) {
+        whereClause.status = { [Op.ne]: "Converted" };
+      }
+
+      // Global Client-Level Check
+      if (campaign.requiresNetNewLeads) {
+        whereClause.clientLeadId = {
+          [Op.notIn]: sequelize.literal(`(
+            SELECT client_lead_id 
+            FROM lead_list_memberships 
+            WHERE status = 'Converted'
+          )`)
+        };
+      }
+
+      const members = await LeadListMembership.findAll({
+        where: whereClause,
+        transaction: t
+      });
+
+      if (members.length > 0) {
+        const campaignLeads = members.map((m) => ({
+          campaignId: campaign.id,
+          clientLeadId: m.clientLeadId,
+          status: "pending"
+        }));
+        await CampaignLead.bulkCreate(campaignLeads, { transaction: t, ignoreDuplicates: true });
+      }
+
+      // 4. Finally, activate the campaign!
+      await campaign.update(
         {
-          model: Client,
-          as: "client",
-          attributes: ["name"]
-        }
-      ]
+          approvedByUserId: userId,
+          approvedAt: new Date(),
+          status: "active"
+        },
+        { transaction: t }
+      );
+
+      return campaign;
     });
-
-    if (!campaign) throw new Error("Campaign not found");
-
-    // 2. Fetch Job Details (Grab the most recent processing job)
-    const job = await EmailProcessingJob.findOne({
-      where: { campaignId },
-      order: [["createdAt", "DESC"]]
-    });
-
-    // 3. Fetch Engagement Logs with Recipient Data
-    const engagements = await LeadEngagement.findAll({
-      where: { campaignId },
-      include: [
-        {
-          model: ClientLead,
-          as: "clientLead",
-          include: [
-            {
-              model: MasterContact,
-              as: "masterContact",
-              attributes: ["firstName", "lastName", "email"]
-            }
-          ]
-        }
-      ],
-      order: [
-        ["sentAt", "DESC NULLS LAST"],
-        ["createdAt", "DESC"]
-      ]
-    });
-
-    // 4. Flatten logs exactly how your frontend Analytics/Log UI expects it
-    const formattedLogs = engagements.map((e) => ({
-      id: e.id,
-      firstName: e.clientLead?.masterContact?.firstName,
-      lastName: e.clientLead?.masterContact?.lastName,
-      email: e.clientLead?.masterContact?.email,
-      status: e.status, // sent, delivered, bounced, spamreport
-      opens: e.openCount || 0,
-      clicks: e.clickCount || 0,
-      sentAt: e.sentAt
-    }));
-
-    // 5. Unified Payload
-    return {
-      campaign: {
-        id: campaign.id,
-        name: campaign.name,
-        clientName: campaign.client.name,
-        status: campaign.status,
-        dispatchStatus: campaign.dispatchStatus
-      },
-      job: job
-        ? {
-            status: job.status, // Queued, Processing, Completed, Failed
-            totalEmails: job.totalEmails || 0,
-            processedEmails: job.processedEmails || 0,
-            successfulSends: job.successfulSends || 0,
-            failedSends: job.failedSends || 0
-          }
-        : null,
-      logs: formattedLogs
-    };
   }
-
 }
 module.exports = CampaignService;

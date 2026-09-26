@@ -27,6 +27,23 @@ class DashboardController {
       return sendSuccess(res, summary, 'Client portal summary retrieved');
     } catch (error) { next(error); }
   }
+
+    async getEmailDashboard(req, res, next) {
+    try {
+      const dashboardData = await this.service.getEmailDashboard(
+        req.user.id, 
+        req.params.id
+      );
+      
+      return sendSuccess(
+        res, 
+        dashboardData, 
+        "Email dashboard data retrieved successfully"
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 module.exports = DashboardController;
 

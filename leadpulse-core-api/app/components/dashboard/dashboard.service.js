@@ -11,6 +11,7 @@ const {
   MasterContact,
   LeadListMembership, 
   LeadList,
+  EmailProcessingJob,
   sequelize
 } = require("leadpulse-data-model");
 const { Op } = require("sequelize");
@@ -327,6 +328,72 @@ class DashboardService {
       activeCampaigns,
       completedCampaigns,
       totalCampaigns
+    };
+  }
+    async getEmailDashboard(userId, campaignId) {
+    // 1. Fetch Basic Campaign Details
+    const campaign = await Campaign.findOne({
+      where: { id: campaignId },
+      attributes: ["id", "name", "status", "type", "dispatchStatus"],
+      include: [
+        { model: Client, as: "client", attributes: ["name"] }
+      ]
+    });
+
+    if (!campaign) throw new Error("Campaign not found");
+
+    // 2. Fetch Job Details (Grab the most recent processing job)
+    const job = await EmailProcessingJob.findOne({
+      where: { campaignId },
+      order: [["createdAt", "DESC"]]
+    });
+
+    // 3. Fetch Engagement Logs with Recipient Data
+    const engagements = await LeadEngagement.findAll({
+      where: { campaignId },
+      include: [
+        {
+          model: ClientLead, as: "clientLead",
+          include: [
+            { model: MasterContact, as: "masterContact", attributes: ["firstName", "lastName", "email"] }
+          ]
+        }
+      ],
+      order: [
+        ["sentAt", "DESC NULLS LAST"],
+        ["createdAt", "DESC"]
+      ]
+    });
+
+    // 4. Flatten logs exactly how your frontend Analytics/Log UI expects it
+    const formattedLogs = engagements.map((e) => ({
+      id: e.id,
+      firstName: e.clientLead?.masterContact?.firstName,
+      lastName: e.clientLead?.masterContact?.lastName,
+      email: e.clientLead?.masterContact?.email,
+      status: e.status, // sent, delivered, bounced, spamreport
+      opens: e.openCount || 0,
+      clicks: e.clickCount || 0,
+      sentAt: e.sentAt
+    }));
+
+    // 5. Unified Payload
+    return {
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+        clientName: campaign.client.name,
+        status: campaign.status,
+        dispatchStatus: campaign.dispatchStatus
+      },
+      job: job ? {
+            status: job.status,
+            totalEmails: job.totalEmails || 0,
+            processedEmails: job.processedEmails || 0,
+            successfulSends: job.successfulSends || 0,
+            failedSends: job.failedSends || 0
+          } : null,
+      logs: formattedLogs
     };
   }
 }
