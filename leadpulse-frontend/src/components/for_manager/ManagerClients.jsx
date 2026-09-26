@@ -44,13 +44,40 @@ export default function ManagerClients() {
       .catch((err) => console.log("Using clients list mock", err));
   }, [page]);
 
+  // Lead Lists State
+  const [leadLists, setLeadLists] = useState([]);
+
   useEffect(() => {
     if (selectedClient) {
       api.get(`/users?role=client&clientId=${selectedClient.id}`)
         .then(res => setClientUsers(res.data?.data?.users || []))
         .catch(err => console.error("Failed to load client users"));
+        
+      fetchLeadLists();
     }
   }, [selectedClient]);
+
+  const fetchLeadLists = () => {
+    if(!selectedClient) return;
+    api.get(`/lead-lists?clientId=${selectedClient.id}`)
+      .then(res => setLeadLists(res.data?.data || []))
+      .catch(err => console.error("Failed to load lead lists"));
+  };
+
+  useEffect(() => {
+    const hasActiveJobs = leadLists.some(list => {
+      const status = list.importJobs?.[0]?.status;
+      return status === "Uploaded" || status === "Queued" || status === "Processing";
+    });
+    
+    let interval;
+    if (hasActiveJobs && selectedClient) {
+      interval = setInterval(() => {
+        fetchLeadLists();
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [leadLists, selectedClient]);
 
   const handleAddContact = async (e) => {
     e.preventDefault();
@@ -162,6 +189,7 @@ export default function ManagerClients() {
       setUploadStatus("Upload complete! Background import service started.");
       setUploadListName(""); // reset form
       setUploadFile(null);
+      fetchLeadLists();
     } catch (error) {
       console.error("Upload failed", error);
       const msg = error.response?.data?.error?.message || error.response?.data?.message || "Upload failed";
@@ -460,6 +488,68 @@ export default function ManagerClients() {
                     {uploadStatus}
                   </div>
                 )}
+              </div>
+
+              {/* Lead Lists & Import Jobs */}
+              <div style={{
+                background: "white", border: "1px solid #e2e8f0",
+                borderRadius: 14, padding: "20px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <div style={{ padding: 8, background: "#f1f5f9", borderRadius: 10, display: "flex" }}>
+                    <Upload size={18} color="#475569" />
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>Lead Lists & Import History</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 350, overflowY: "auto" }}>
+                  {leadLists.map(list => {
+                    const job = list.importJobs?.[0];
+                    const seqNames = list.sequences?.map(s => s.name).join(", ") || "No sequences attached";
+                    return (
+                      <div key={list.id} style={{ display: "flex", flexDirection: "column", gap: 8, padding: "16px", border: "1px solid #e2e8f0", borderRadius: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>{list.name}</div>
+                            <div style={{ fontSize: 11, color: "#64748b", marginTop: 4, fontWeight: 600 }}>Sequences: {seqNames}</div>
+                          </div>
+                          {job && (
+                            <div style={{ textAlign: "right" }}>
+                              <span style={{ 
+                                fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 12, 
+                                background: job.status === "Completed" ? "#dcfce7" : (job.status === "Failed" ? "#fef2f2" : "#fef9c3"),
+                                color: job.status === "Completed" ? "#166534" : (job.status === "Failed" ? "#991b1b" : "#854d0e")
+                              }}>
+                                {job.status.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {job && (
+                          <div style={{ marginTop: 8, padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 11, color: "#475569", fontWeight: 600 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                              <span>Total Leads: {job.totalRows || 0}</span>
+                              <span>{Math.round(job.progressPercentage || 0)}% Complete</span>
+                            </div>
+                            <div style={{ width: "100%", height: 6, background: "#e2e8f0", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+                              <div style={{ width: `${job.progressPercentage || 0}%`, height: "100%", background: job.status === "Failed" ? "#ef4444" : "#10b981", transition: "width 0.3s" }} />
+                            </div>
+                            <div style={{ display: "flex", gap: 16 }}>
+                              <span style={{ color: "#166534" }}>{job.successfulRows || 0} Processed</span>
+                              {job.failedRows > 0 && <span style={{ color: "#991b1b" }}>{job.failedRows} Failed</span>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {leadLists.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "30px", color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+                      No lead lists imported yet. Use the uploader above to create one!
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Client Contacts */}

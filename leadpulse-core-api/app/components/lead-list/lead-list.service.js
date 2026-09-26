@@ -1,4 +1,4 @@
-﻿const { LeadList, ImportJob, ClientManager, LeadListMembership, ClientLead, MasterContact, sequelize } = require('leadpulse-data-model');
+const { LeadList, ImportJob, ClientManager, LeadListMembership, ClientLead, MasterContact, sequelize } = require('leadpulse-data-model');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../../lib/error');
 const storageService = require('../../utils/storage');
 
@@ -52,12 +52,25 @@ class LeadListService {
     
     const { count, rows } = await LeadList.findAndCountAll({
       where: { clientId },
+      include: [
+        { model: ImportJob, as: 'importJobs', separate: true, limit: 1, order: [['createdAt', 'DESC']] }
+      ],
       limit,
       offset,
       order: [['createdAt', 'DESC']]
     });
 
-    return { lists: rows, total: count };
+    const listIds = rows.map(r => r.id);
+    const { Sequence } = require('leadpulse-data-model');
+    const sequences = await Sequence.findAll({ where: { leadListId: listIds } });
+
+    const listsWithSequences = rows.map(list => {
+      const l = list.toJSON();
+      l.sequences = sequences.filter(s => s.leadListId === l.id);
+      return l;
+    });
+
+    return { lists: listsWithSequences, total: count };
   }
 
   async getLeadListById(userId, id) {
