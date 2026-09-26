@@ -196,12 +196,27 @@ class DashboardService {
       attributes: ["fullName", "email"]
     });
 
-    const assignments = await CampaignExecutive.findAll({
+    let assignments = await CampaignExecutive.findAll({
       where: { executiveUserId, isActive: true },
       include: [
         { model: Campaign, as: "campaign", attributes: ["id", "name", "type", "description"] }
-      ]
+      ],
+      order: [["createdAt", "DESC"]]
     });
+
+    let isUnassigned = false;
+    if (assignments.length === 0) {
+      assignments = await CampaignExecutive.findAll({
+        where: { executiveUserId },
+        include: [
+          { model: Campaign, as: "campaign", attributes: ["id", "name", "type", "description"] }
+        ],
+        order: [["createdAt", "DESC"]],
+        limit: 1
+      });
+      isUnassigned = true;
+    }
+
     const activeCampaign = assignments.length > 0 ? assignments[0].campaign : null;
 
     // 1. Fetch recent general call history
@@ -266,6 +281,7 @@ class DashboardService {
       inReviewValue: inReviewCount * AVG_CONVERSION_RATE,
       confirmedEarnings: approvedCount * AVG_CONVERSION_RATE,
       activeCampaign,
+      isUnassigned,
       executiveDetails: executiveInfo
         ? {
             fullName: executiveInfo.fullName,

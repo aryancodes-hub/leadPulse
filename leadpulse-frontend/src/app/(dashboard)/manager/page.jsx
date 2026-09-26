@@ -9,6 +9,7 @@ import ManagerDashboard from "@/components/for_manager/ManagerDashboard";
 import ManagerClients from "@/components/for_manager/ManagerClients";
 import ManagerExecutives from "@/components/for_manager/ManagerExecutives";
 import ManagerCampaigns from "@/components/for_manager/ManagerCampaigns";
+import ProfileView from "@/components/ProfileView";
 
 export default function ManagerPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -28,6 +29,7 @@ export default function ManagerPage() {
             {activeTab === "clients" && <ManagerClients />}
             {activeTab === "executives" && <ManagerExecutives />}
             {activeTab === "campaigns" && <ManagerCampaigns />}
+            {activeTab === "profile" && <ProfileView />}
           </main>
         </div>
       </div>

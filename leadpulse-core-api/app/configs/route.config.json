@@ -28,6 +28,20 @@
     "middlewareNameList": ["authenticate"]
   },
   {
+    "method": "get",
+    "route": "/api/v1/auth/me",
+    "controller": "auth",
+    "action": "getMe",
+    "middlewareNameList": ["authenticate"]
+  },
+  {
+    "method": "patch",
+    "route": "/api/v1/auth/me",
+    "controller": "auth",
+    "action": "updateProfile",
+    "middlewareNameList": ["authenticate", "validateJsonContentType"]
+  },
+  {
     "method": "post",
     "route": "/api/v1/auth/forgot-password",
     "controller": "auth",

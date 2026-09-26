@@ -1,10 +1,10 @@
 "use client";
 
-import { Box, Home, Play, History, CalendarClock, LogOut, Send } from "lucide-react";
+import { Box, Home, Play, History, CalendarClock, LogOut, Send, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation"; // 🚀 1. Import the router
 
-export default function ExecutiveSidebar({ activeTab, setActiveTab, campaignType = "call" }) {
+export default function ExecutiveSidebar({ activeTab, setActiveTab, campaignType = "call", isUnassigned }) {
   const { logout } = useAuth();
   const router = useRouter(); // 🚀 2. Initialize router
 
@@ -41,15 +41,23 @@ export default function ExecutiveSidebar({ activeTab, setActiveTab, campaignType
 
           {isCall ? (
             <>
-              <button type="button" onClick={() => setActiveTab("queue")} className={`exec-nav-item ${activeTab === "queue" ? "active" : ""}`}>
+              <button 
+                type="button" 
+                onClick={() => !isUnassigned && setActiveTab("queue")} 
+                disabled={isUnassigned}
+                className={`exec-nav-item ${activeTab === "queue" ? "active" : ""} ${isUnassigned ? "opacity-50" : ""}`}
+                style={isUnassigned ? { cursor: "not-allowed" } : {}}
+              >
                 <Play size={18} className="exec-nav-icon fill-current" />
                 <span className="exec-nav-label">START CALLING</span>
               </button>
-              {/* <button type="button" onClick={() => setActiveTab("history")} className={`exec-nav-item ${activeTab === "history" ? "active" : ""}`}>
-                <History size={18} className="exec-nav-icon" />
-                <span className="exec-nav-label">CALL HISTORY</span>
-              </button> */}
-              <button type="button" onClick={() => setActiveTab("callbacks")} className={`exec-nav-item ${activeTab === "callbacks" ? "active" : ""}`}>
+              <button 
+                type="button" 
+                onClick={() => !isUnassigned && setActiveTab("callbacks")} 
+                disabled={isUnassigned}
+                className={`exec-nav-item ${activeTab === "callbacks" ? "active" : ""} ${isUnassigned ? "opacity-50" : ""}`}
+                style={isUnassigned ? { cursor: "not-allowed" } : {}}
+              >
                 <CalendarClock size={18} className="exec-nav-icon" />
                 <span className="exec-nav-label">CALLBACKS</span>
               </button>
@@ -60,7 +68,15 @@ export default function ExecutiveSidebar({ activeTab, setActiveTab, campaignType
         </nav>
       </div>
 
-      <div className="p-4 border-t border-slate-800 mt-auto bg-slate-900">
+      <div className="p-4 border-t border-slate-800 mt-auto bg-slate-900 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("profile")}
+          className={`exec-nav-item w-full transition-colors ${activeTab === "profile" ? "active" : ""}`}
+        >
+          <User size={18} className="exec-nav-icon" />
+          <span className="exec-nav-label font-bold tracking-wider">PROFILE</span>
+        </button>
         {/* 🚀 5. Attach handleLogout */}
         <button
           type="button"

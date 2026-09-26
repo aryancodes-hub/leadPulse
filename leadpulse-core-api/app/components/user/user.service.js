@@ -1,6 +1,6 @@
-﻿const { User, CampaignExecutive, Campaign, sequelize } = require('leadpulse-data-model');
+const { User, CampaignExecutive, Campaign, ClientManager, sequelize } = require('leadpulse-data-model');
 const { Op } = require('sequelize');
-const { NotFoundError, ConflictError, ForbiddenError } = require('../../lib/error');
+const { NotFoundError, ConflictError, ForbiddenError, BadRequestError } = require('../../lib/error');
 const bcrypt = require('bcryptjs');
 
 class UserService {
@@ -36,11 +36,17 @@ class UserService {
     return userJson;
   }
 
-  async getUsers(managerId, pagination, unassigned = false) {
+  async getUsers(managerId, pagination, unassigned = false, queryRole = 'executive', queryClientId = null) {
     const { limit, offset } = pagination;
-    let whereClause = { managerId, role: 'executive' };
+    let whereClause = { managerId, role: queryRole };
+    
+    if (queryRole === 'client') {
+      if (!queryClientId) throw new BadRequestError("clientId is required when fetching client users.");
+      whereClause = { role: 'client', clientId: queryClientId };
+    }
+
     // 1. Safe & Optimal filtering for Unassigned (No Raw Literals)
-    if (unassigned) {
+    if (unassigned && queryRole === 'executive') {
       const activeExecs = await CampaignExecutive.findAll({ 
         where: { isActive: true }, 
         attributes: ['executiveUserId'] 

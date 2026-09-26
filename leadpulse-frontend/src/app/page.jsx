@@ -1,10 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-
 import Link from "next/link";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-
 import { register } from "@/lib/auth";
 
 const FEATURES = [
@@ -33,7 +31,6 @@ const FEATURES = [
 export default function HomePage() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const registerRef = useRef(null);
-
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -42,9 +39,7 @@ export default function HomePage() {
   });
 
   const [loading, setLoading] = useState(false);
-
   const [message, setMessage] = useState("");
-
   const [error, setError] = useState("");
 
   function scrollToRegister() {
@@ -120,8 +115,7 @@ export default function HomePage() {
             </h1>
 
             <p>
-              Lead Pulse brings campaigns, lead management, calling, email outreach and analytics
-              together in one workspace for your whole agency.
+              Lead Pulse brings campaigns, lead management, calling, email outreach and analytics together in one workspace for your whole agency.
             </p>
 
             <div className="hero-actions">
@@ -132,38 +126,6 @@ export default function HomePage() {
               <Link href="/login" className="btn btn-outline-light btn-lg">
                 Sign in
               </Link>
-            </div>
-          </div>
-
-          <div className="hero-visual">
-            <div className="hero-visual-label">
-              <span>
-                <span className="dot" />
-                Live campaign pulse
-              </span>
-
-              <span>Last 30 days</span>
-            </div>
-
-            <svg className="pulse-line" viewBox="0 0 300 90" preserveAspectRatio="none">
-              <path d="M0 60 L35 60 L48 20 L60 78 L74 45 L90 45 L104 15 L118 65 L140 65 L155 38 L170 38 L185 55 L210 55 L226 25 L242 70 L260 40 L300 40" />
-            </svg>
-
-            <div className="hero-visual-stats">
-              <div>
-                <strong>428</strong>
-                Leads worked
-              </div>
-
-              <div>
-                <strong>16.8%</strong>
-                Conversion
-              </div>
-
-              <div>
-                <strong>32</strong>
-                Active campaigns
-              </div>
             </div>
           </div>
         </div>

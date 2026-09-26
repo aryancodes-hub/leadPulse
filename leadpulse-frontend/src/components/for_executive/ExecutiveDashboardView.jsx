@@ -127,13 +127,32 @@ export default function ExecutiveDashboardView({ activeCampaign, onStartCalling,
       />
 
       {/* Single Assigned Call Campaign Panel */}
+      {campaign?.isUnassigned && (
+        <div style={{
+          background: "#fffbeb",
+          border: "1px solid #fde68a",
+          borderRadius: 12,
+          padding: "14px 20px",
+          marginBottom: 16,
+          color: "#92400e",
+          fontSize: 14,
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: 12
+        }}>
+          <Megaphone size={18} />
+          You are currently unassigned. Showing data from your last assigned campaign.
+        </div>
+      )}
       <div
         style={{
           background: "#fff",
           borderRadius: 16,
           border: "1px solid #e2e8f0",
           boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
-          overflow: "hidden"
+          overflow: "hidden",
+          opacity: campaign?.isUnassigned ? 0.7 : 1
         }}
       >
         {/* Gradient Header Strip */}
@@ -278,6 +297,7 @@ export default function ExecutiveDashboardView({ activeCampaign, onStartCalling,
 
           <button
             type="button"
+            disabled={campaign?.isUnassigned}
             onClick={() => onStartCalling(campaign)}
             style={{
               display: "flex",
@@ -286,13 +306,13 @@ export default function ExecutiveDashboardView({ activeCampaign, onStartCalling,
               padding: "13px 28px",
               borderRadius: 12,
               border: "none",
-              cursor: "pointer",
-              background: "linear-gradient(135deg, #0066ff 0%, #7c3aed 100%)",
+              cursor: campaign?.isUnassigned ? "not-allowed" : "pointer",
+              background: campaign?.isUnassigned ? "#94a3b8" : "linear-gradient(135deg, #0066ff 0%, #7c3aed 100%)",
               color: "white",
               fontWeight: 800,
               fontSize: 13,
               letterSpacing: "0.03em",
-              boxShadow: "0 4px 16px rgba(0,102,255,0.35)",
+              boxShadow: campaign?.isUnassigned ? "none" : "0 4px 16px rgba(0,102,255,0.35)",
               whiteSpace: "nowrap",
               transition: "all 0.2s"
             }}

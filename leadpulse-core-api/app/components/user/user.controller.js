@@ -1,4 +1,4 @@
-﻿const UserService = require('./user.service');
+const UserService = require('./user.service');
 const { sendSuccess } = require('../../utils/response-wrapper');
 
 class UserController {
@@ -69,7 +69,9 @@ class UserController {
     async getUsers(req, res, next) {
     try {
       const unassigned = req.query.unassigned === 'true';
-      const { users, total } = await this.userService.getUsers(req.user.id, req.pagination, unassigned);
+      const role = req.query.role || 'executive';
+      const clientId = req.query.clientId;
+      const { users, total } = await this.userService.getUsers(req.user.id, req.pagination, unassigned, role, clientId);
       
       // Reshape data to strictly match the frontend UI expectations
             // Reshape data to strictly match the frontend UI expectations

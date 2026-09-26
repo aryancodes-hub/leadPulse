@@ -9,6 +9,19 @@ const { verifyRecaptcha } = require('../../utils/recaptcha');
 
 class AuthService {
   
+  async getMe(userId) {
+    const user = await User.findByPk(userId, { attributes: { exclude: ['passwordHash', 'refreshTokenHash', 'resetTokenHash'] } });
+    if (!user) throw new UnauthorizedError("User not found");
+    return user;
+  }
+
+  async updateProfile(userId, fullName) {
+    const user = await User.findByPk(userId, { attributes: { exclude: ['passwordHash', 'refreshTokenHash', 'resetTokenHash'] } });
+    if (!user) throw new UnauthorizedError("User not found");
+    user.fullName = fullName;
+    await user.save();
+    return user;
+  }
   async register(data) {
     const { fullName, email, password, recaptchaToken } = data;
 

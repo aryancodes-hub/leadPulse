@@ -8,6 +8,7 @@ import ExecutiveDashboardView from "@/components/for_executive/ExecutiveDashboar
 import ExecutiveQueueView from "@/components/for_executive/ExecutiveQueueView";
 import ExecutiveCallHistoryTab from "@/components/for_executive/ExecutiveCallHistoryTab";
 import ExecutiveEmailView from "@/components/for_executive/ExecutiveEmailView";
+import ProfileView from "@/components/ProfileView";
 import { getExecutivePerformance } from "@/lib/dashboards"; // 🚀 Import real API
 
 export default function ExecutivePage() {
@@ -26,7 +27,8 @@ export default function ExecutivePage() {
       if (data && data.activeCampaign) {
         setActiveCampaign({
           ...data.activeCampaign,
-          campaign_type: data.activeCampaign.type 
+          campaign_type: data.activeCampaign.type,
+          isUnassigned: data.isUnassigned
         });
       }
       if (data && data.executiveDetails) {
@@ -86,6 +88,7 @@ export default function ExecutivePage() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           campaignType={activeCampaign?.campaign_type || "call"}
+          isUnassigned={activeCampaign?.isUnassigned}
         />
 
         {/* Main Content Area */}
@@ -117,6 +120,8 @@ export default function ExecutivePage() {
               callLogs={perfData?.callLogs || []}
             />
           )}
+
+          {activeTab === "profile" && <ProfileView />}
         </div>
       </div>
     </AuthGuard>

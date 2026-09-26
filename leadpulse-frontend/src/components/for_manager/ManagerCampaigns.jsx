@@ -510,7 +510,7 @@ export default function ManagerCampaigns() {
                         <CheckCircle size={12} /> Approve
                       </button>
                     )}
-                    {cmp.status !== "Draft" && (
+                    {cmp.status !== "Draft" && cmp.status !== "Completed" && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -522,8 +522,8 @@ export default function ManagerCampaigns() {
                         {cmp.status === "Active" ? "Pause" : "Resume"}
                       </button>
                     )}
-                                        {/* End Campaign Button (Email Campaigns Only) */}
-                    {(cmp.type === "Email Sequence Drip" || cmp.type === "email") && 
+                    {/* End Campaign Button (Email Campaigns Only) */}
+                    { 
                      (cmp.status === "Active" || cmp.status === "Paused") && (
                       <button
                         onClick={(e) => {
